@@ -17,6 +17,8 @@ def start_new_project(data_directory='data'):
 
     # Load all project names from the CSV file
     project_names = load_list_from_csv(project_csv)
+    
+    project_name = None
 
     while True:
         # Prompt user for a project name
@@ -59,19 +61,21 @@ def continue_existing_project(data_directory='data'):
         print("\nNo projects found. Please start a new project first.")
         return None
     
-    # Display the available projects
-    print("\nHere are the available projects:")
-    for index, project in project_names.items():
-        print(f"{index+1}. {project}")
+    while True:
+        # Display the available projects
+        print("\nHere are the available projects:")
+        for index, project in project_names.items():
+            print(f"{index+1}. {project}")
+        
+        # Prompt the user for the project name
+        project_name = input("\nPlease enter the name of the project you want to continue: ").strip()
+        
+        # Check if the entered project exists
+        if project_name in project_names.values():
+            print(f"\nContinuing with the existing project: {project_name}\n")
+            return project_name
+        else:
+            print(f"\nNo project found with the name '{project_name}'. Please make sure to enter a valid project name.")
+            return None  # Return None if the project doesn't exist
     
-    # Prompt the user for the project name
-    project_name = input("\nPlease enter the name of the project you want to continue: ").strip()
-    
-    # Check if the entered project exists
-    if project_name in project_names.values():
-        print(f"\nContinuing with the existing project: {project_name}\n")
-    else:
-        print(f"\nNo project found with the name '{project_name}'. Please make sure to enter a valid project name.")
-        project_name = None  # Return None if the project doesn't exist
-    
-    return project_name
+
