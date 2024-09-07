@@ -1,12 +1,10 @@
 import os
-from yttrackmyvoice.utils import save_list_to_csv, load_list_from_csv
+from yttrackmyvoice.utils import save_list_to_csv, load_list_from_csv, create_directory_if_not_exists
 
 def start_new_project(data_directory='data'):
     """Handles the creation of a new project and stores the project name in a CSV file."""
     
-    # Ensure the data directory exists
-    if not os.path.exists(data_directory):
-        os.makedirs(data_directory)
+    create_directory_if_not_exists(data_directory)
 
     # Path to the CSV file that will store all project names
     project_csv = os.path.join(data_directory, 'projects.csv')
