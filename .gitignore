@@ -1,2 +1,11 @@
 # AppDiagram
 AppDiagram.png
+
+# pycache
+__pycache__/
+
+# Ignore all files and subdirectories in the data directory
+data/*
+
+# But don't ignore the .gitkeep file
+!data/.gitkeep
