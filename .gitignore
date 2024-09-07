@@ -9,3 +9,6 @@ data/*
 
 # But don't ignore the .gitkeep file
 !data/.gitkeep
+
+# Ignore virtual environment folder
+yttvenv/
