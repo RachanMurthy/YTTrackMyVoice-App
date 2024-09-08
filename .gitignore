@@ -12,3 +12,9 @@ data/*
 
 # Ignore virtual environment folder
 yttvenv/
+
+# macOS system files
+.DS_Store
+
+# Todo List
+docs/Todo.txt
