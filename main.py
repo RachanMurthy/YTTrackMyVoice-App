@@ -1,6 +1,5 @@
 import os
-from yttrackmyvoice.project_manager import start_new_project, continue_existing_project
-from yttrackmyvoice.download_audio import download_youtube_audio_default
+from yttrackmyvoice.project_manager import start_new_project, continue_existing_project, start_project
 
 if __name__ == "__main__":
     # Welcome message
@@ -26,5 +25,7 @@ if __name__ == "__main__":
         elif project_type == '2':
             # Continue an existing project
             project_name = continue_existing_project()
+    
+    start_project(project_name)
 
     
