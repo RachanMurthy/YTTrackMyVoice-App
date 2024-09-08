@@ -1,7 +1,8 @@
+import os
 from pytubefix import YouTube
 from pytubefix.cli import on_progress
 
-def download_youtube_audio_default(url, output_path='.'):
+def download_youtube_audio(url, output_path='.'):
     try:
         # Create YouTube object
         yt = YouTube(url, on_progress_callback=on_progress)
@@ -15,6 +16,15 @@ def download_youtube_audio_default(url, output_path='.'):
 
         # Get the file format/subtype (e.g., 'webm', 'm4a')
         file_format = audio_stream.subtype
+
+        # Construct the expected file name
+        file_name = f"{yt.title}.{file_format}"
+        audio_file_path = os.path.join(output_path, file_name)
+        
+        # Check if the file already exists
+        if os.path.exists(audio_file_path):
+            print(f"File already exists: {audio_file_path}")
+            return audio_file_path
         
         # Download the audio in its correct format
         audio_file = audio_stream.download(output_path=output_path, filename=f"{yt.title}.{file_format}")
