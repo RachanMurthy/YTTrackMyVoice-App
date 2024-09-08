@@ -1,3 +1,4 @@
+from pytubefix import Playlist
 import csv
 import os
 
@@ -82,6 +83,7 @@ def create_directory_if_not_exists(directory_path):
         print(f"Directory already exists: {directory_path}")
         return False  # Return False indicating the directory already existed
 
+
 def create_folders_for_urls(url_list, main_folder):
     """
     Creates a directory for all videos and then creates a directory for each URL inside the main folder.
@@ -111,3 +113,28 @@ def create_folders_for_urls(url_list, main_folder):
         
         # Additional logic can be placed here after the folder is created
         print(f'Processing folder: {folder_path}')
+
+
+def extract_video_urls_from_playlist(playlist_url):
+    """
+    Given a YouTube playlist URL, this function returns a list of video URLs.
+
+    Args:
+        playlist_url (str): The URL of the YouTube playlist.
+
+    Returns:
+        list: A list of video URLs from the playlist.
+    """
+    try:
+        # Create a Playlist object
+        playlist = Playlist(playlist_url)
+
+        # Extract all video URLs from the playlist
+        video_urls = [video.watch_url for video in playlist.videos]
+
+        return video_urls
+    
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return []
+
