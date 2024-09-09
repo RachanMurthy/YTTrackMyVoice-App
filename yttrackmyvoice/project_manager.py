@@ -145,29 +145,3 @@ def start_project(project_name, data_directory='data'):
 
         # Download the audio from the YouTube URL
         download_youtube_audio(url, folder_path_video)
-
-
-    folder_path = os.path.join(data_directory, project_name)
-    create_directory_if_not_exists(folder_path)
-
-    urls_csv = get_urls(project_name, folder_path)
-
-    urls_dict = load_list_from_csv(urls_csv)
-
-    for key, value in urls_dict.items():
-        url = value
-        
-        # Generate a folder name for each URL, based on its index
-        folder_name = f'{key}'
-        
-        # Create the folder path inside the main folder
-        folder_path_video = os.path.join(folder_path, folder_name)
-        
-        # Check if the folder already exists
-        if not os.path.exists(folder_path_video):
-            os.makedirs(folder_path_video, exist_ok=True)
-            print(f'Folder created: {folder_path_video}')
-        else:
-            print(f'Folder already exists: {folder_path_video}')
-
-        download_youtube_audio(url, folder_path_video)
