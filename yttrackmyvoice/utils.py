@@ -138,3 +138,85 @@ def extract_video_urls_from_playlist(playlist_url):
         print(f"An error occurred: {e}")
         return []
 
+
+def get_urls(project_name, folder_path):
+    """
+    Manages the URLs for a given project, allowing the user to add new video or playlist URLs.
+
+    Args:
+    - project_name (str): The name of the project.
+    - folder_path (str): The path to the project folder where URLs will be saved.
+
+    Returns:
+    - str: The path to the CSV file storing the project's URLs.
+    """
+    urls = []
+
+    # Path to the CSV file storing project URLs
+    urls_csv = os.path.join(folder_path, 'urls.csv')
+
+    # Load existing URLs from the CSV file
+    urls_dict = load_list_from_csv(urls_csv)
+
+    # Check if any URLs are already stored for the project
+    if urls_dict:
+        # If URLs exist, load them into the 'urls' list and print them
+        urls = list(urls_dict.values())
+        print(f"The project '{project_name}' contains the following URLs:\n")
+        for url in urls:
+            print(url)
+    else:
+        # If no URLs are found, inform the user
+        print(f"The project '{project_name}' has no saved URLs.")
+
+    # Ask the user for new URLs to add to the project
+    print("Would you like to submit a single video URL or a playlist URL?")
+    print("Enter '1' for a single video, '2' for a playlist, or type 'STOP' to exit.")
+    
+    while True:
+        # Get user input for a single URL or playlist, or stop
+        choice = input("Enter your choice (1 for URL, 2 for playlist, 'STOP' to end): ")
+        
+        if choice.upper() == 'STOP':
+            break
+        
+        if choice == '1':
+            # Handle single video URL input
+            user_input = input("Enter the single URL (or type 'STOP' to end): ")
+            if user_input.upper() == 'STOP':
+                break
+            # Check if the URL already exists
+            if user_input in urls:
+                print(f"URL already exists: {user_input}")
+                continue
+            # Append the new URL
+            urls.append(user_input)
+
+        elif choice == '2':
+            # Handle playlist URL input
+            user_input = input("Enter the playlist URL (or type 'STOP' to end): ")
+            if user_input.upper() == 'STOP':
+                break
+            # Extract all video URLs from the playlist
+            playlist_urls = extract_video_urls_from_playlist(user_input)
+            
+            # Check if the playlist URLs already exist and append new ones
+            playlist_urls_updated = []
+            for playlist_url in playlist_urls:
+                if playlist_url in urls:
+                    print(f"URL already exists: {playlist_url}")
+                    continue
+                playlist_urls_updated.append(playlist_url)
+            urls.extend(playlist_urls_updated)
+
+        else:
+            # Handle invalid input
+            print("Invalid input. Please type '1' for URL, '2' for playlist, or 'STOP' to end.")
+
+    # Print all URLs collected
+    print(f"URLs collected: {urls}")
+
+    # Save the updated list of URLs to the CSV file
+    save_list_to_csv(urls, urls_csv)
+    
+    return urls_csv

@@ -1,10 +1,19 @@
 import os
-from yttrackmyvoice.utils import save_list_to_csv, load_list_from_csv, create_directory_if_not_exists,extract_video_urls_from_playlist
-from yttrackmyvoice.download_audio import download_youtube_audio
+from .utils import save_list_to_csv, load_list_from_csv, create_directory_if_not_exists, get_urls
+from .download_audio import download_youtube_audio
 
-def start_new_project(data_directory='data'):
-    """Handles the creation of a new project and stores the project name in a CSV file."""
+def new_project(data_directory='data'):
+    """
+    Handles the creation of a new project and stores the project name in a CSV file.
     
+    Parameters:
+    - data_directory: Directory where the project data will be stored (default is 'data').
+    
+    Returns:
+    - The name of the newly created project.
+    """
+    
+    # Ensure the data directory exists
     create_directory_if_not_exists(data_directory)
 
     # Path to the CSV file that will store all project names
@@ -16,11 +25,12 @@ def start_new_project(data_directory='data'):
         with open(project_csv, 'w', newline='') as file:
             pass  # Just creating the file, no data written yet
 
-    # Load all project names from the CSV file
+    # Load all existing project names from the CSV file
     project_names = load_list_from_csv(project_csv)
 
     project_name = None
 
+    # Loop to get a valid project name
     while True:
         # Prompt user for a project name
         project_name = input("\nPlease enter a name for your new project: ").strip()
@@ -28,33 +38,46 @@ def start_new_project(data_directory='data'):
         # Replace spaces with underscores
         project_name = project_name.replace(" ", "_")
     
-        # Check if any projects exist
+        # Check if the project name already exists
         if project_name in project_names.values():
             print(f"\nA project with the name '{project_name}' already exists.")
 
+            # Display existing projects
             print("\nHere are the available projects:")
             for index, project in project_names.items():
                 print(f"{index}. {project}")
 
-            continue
+            continue  # Loop again to get a new project name
         else:
             # If the project name doesn't exist, proceed with creating the new project
             print(f"\nGreat! A new project folder will be created as: {project_name}\n")
 
             # Append the project name to the CSV file
             save_list_to_csv([project_name], project_csv, "a")
-            break  # Exit the loop when a valid new project name is provided
+            break  # Exit the loop once a valid project name is provided
 
     return project_name
 
 
-def continue_existing_project(data_directory='data'):
-    """Handles continuing an existing project by displaying all project names."""
+def continue_project(data_directory='data'):
+    """
+    Handles continuing an existing project by displaying the available projects 
+    and allowing the user to select one.
     
-    # Path to the CSV file storing project names
+    Parameters:
+    - data_directory: Directory where the project data is stored (default is 'data').
+    
+    Returns:
+    - The name of the project to continue, or None if no valid project is found.
+    """
+    
+    # Ensure the data directory exists
+    create_directory_if_not_exists(data_directory)
+
+    # Path to the CSV file containing project names
     project_csv = os.path.join(data_directory, 'projects.csv')
     
-    # Load all project names from the CSV file
+    # Load all existing project names from the CSV file
     project_names = load_list_from_csv(project_csv)
     
     # Check if any projects exist
@@ -62,6 +85,7 @@ def continue_existing_project(data_directory='data'):
         print("\nNo projects found. Please start a new project first.")
         return None
     
+    # Loop to get a valid project name
     while True:
         # Display the available projects
         print("\nHere are the available projects:")
@@ -80,60 +104,48 @@ def continue_existing_project(data_directory='data'):
             return None  # Return None if the project doesn't exist
 
 
-def get_urls(project_name, folder_path):
-    urls = []
+def start_project(project_name, data_directory='data'):
+    """
+    Starts the project by managing folder creation and downloading YouTube audio
+    for the specified project.
 
-    # Path to the CSV file storing project URLs
-    urls_csv = os.path.join(folder_path, 'urls.csv')
+    Parameters:
+    - project_name: The name of the project.
+    - data_directory: Directory where the project data is stored (default is 'data').
+    """
+    
+    # Path to the project folder
+    folder_path = os.path.join(data_directory, project_name)
+    
+    # Ensure the project folder exists
+    create_directory_if_not_exists(folder_path)
 
+    # Get the URLs CSV for the project
+    urls_csv = get_urls(project_name, folder_path)
+
+    # Load URLs from the CSV
     urls_dict = load_list_from_csv(urls_csv)
 
-    if urls_dict:
-        urls = list(urls_dict.values())
-        print(f"The project '{project_name}' contains the following URLs:\n")
-        for url in urls:
-            print(url)
-    else:
-        print(f"The project '{project_name}' has no saved URLs.")
-
-    print("Would you like to submit a single video URL or a playlist URL?")
-    print("Enter '1' for a single video, '2' for a playlist, or type 'STOP' to exit.")
-    
-    while True:
-        choice = input("Enter your choice (1 for URL, 2 for playlist, 'STOP' to end): ")
+    # Loop through all URLs and process them
+    for key, value in urls_dict.items():
+        url = value
         
-        if choice.upper() == 'STOP':
-            break
+        # Generate a folder name for each URL, based on its index
+        folder_name = f'{key}'
         
-        if choice == '1':
-            user_input = input("Enter the single URL (or type 'STOP' to end): ")
-            if user_input.upper() == 'STOP':
-                break
-            if user_input in urls:
-                print(f"Url already exists: {user_input}")
-                continue
-            urls.append(user_input)
-        elif choice == '2':
-            user_input = input("Enter the playlist URL (or type 'STOP' to end): ")
-            if user_input.upper() == 'STOP':
-                break
-            playlist_urls = extract_video_urls_from_playlist(user_input)
-            
-            playlist_urls_updated = []
-            for playlist_url in playlist_urls:
-                if playlist_url in urls:
-                    print(f"Url already exists: {playlist_url}")
-                    continue
-                playlist_urls_updated.append(playlist_url)
-            urls.extend(playlist_urls_updated)
+        # Create the folder path inside the main project folder
+        folder_path_video = os.path.join(folder_path, folder_name)
+        
+        # Check if the folder already exists
+        if not os.path.exists(folder_path_video):
+            os.makedirs(folder_path_video, exist_ok=True)
+            print(f'Folder created: {folder_path_video}')
         else:
-            print("Invalid input. Please type '1' for URL, '2' for playlist, or 'STOP' to end.")
-    print(f"url equal to {urls}")
-    save_list_to_csv(urls, urls_csv)
-    return urls_csv
+            print(f'Folder already exists: {folder_path_video}')
 
+        # Download the audio from the YouTube URL
+        download_youtube_audio(url, folder_path_video)
 
-def start_project(project_name, data_directory='data'):
 
     folder_path = os.path.join(data_directory, project_name)
     create_directory_if_not_exists(folder_path)
