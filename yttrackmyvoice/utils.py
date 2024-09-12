@@ -1,4 +1,5 @@
 from pytubefix import Playlist
+from dotenv import load_dotenv
 import csv
 import os
 
@@ -220,3 +221,13 @@ def get_urls(project_name, folder_path):
     save_list_to_csv(urls, urls_csv)
     
     return urls_csv
+
+def get_key(secret_key):
+    # Load the .env file
+    load_dotenv()
+
+    # Access the variables
+    key = os.getenv(secret_key)
+
+    return key
+    
