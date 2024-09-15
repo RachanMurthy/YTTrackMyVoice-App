@@ -1,4 +1,7 @@
 from pytubefix import Playlist
+from pydub import AudioSegment
+from dotenv import load_dotenv
+from math import ceil
 import csv
 import os
 
@@ -220,3 +223,71 @@ def get_urls(project_name, folder_path):
     save_list_to_csv(urls, urls_csv)
     
     return urls_csv
+
+
+def get_key(secret_key):
+    # Load the .env file
+    load_dotenv()
+
+    # Access the variables
+    key = os.getenv(secret_key)
+
+    return key
+
+
+def export_segment(input_file, start_ms, end_ms, output_file, format="wav"):
+    """
+    Export a segment of an audio file between start_ms and end_ms.
+
+    Parameters:
+    - input_file (str): Path to the input audio file.
+    - start_ms (int): Start time in milliseconds.
+    - end_ms (int): End time in milliseconds.
+    - output_file (str): Path to the output audio file.
+    - format (str): Audio format for the output file (default is "wav").
+
+    Returns:
+    - None
+    """
+    try:
+        audio = AudioSegment.from_file(input_file)
+        segment = audio[start_ms:end_ms]
+        segment.export(output_file, format=format)
+        print(f"Exported segment to {output_file} from {start_ms / 1000}s to {end_ms / 1000}s")
+    except Exception as e:
+        print(f"Error exporting segment: {e}")
+
+
+def split_audio_file(input_file, output_dir, segment_length_ms = 10 * 60 * 1000, format="wav"):
+    """
+    Split an audio file into fixed-length segments.
+
+    Parameters:
+    - input_file (str): Path to the input audio file.
+    - output_dir (str): Directory where the output segments will be saved.
+    - segment_length_ms (int): Length of each segment in milliseconds.
+    - format (str): Audio format for the output files (default is "wav").
+
+    Returns:
+    - None
+    """
+    try:
+        output_dir = os.path.join(output_dir, "segments")
+
+        create_directory_if_not_exists(output_dir)
+
+        # Load the audio file
+        audio = AudioSegment.from_file(input_file)
+        total_length_ms = len(audio)
+
+        # Calculate the number of segments
+        num_segments = ceil(total_length_ms / segment_length_ms)
+
+        # Split and export segments
+        for i in range(num_segments):
+            start_ms = i * segment_length_ms
+            end_ms = min((i + 1) * segment_length_ms, total_length_ms)
+            output_file = os.path.join(output_dir, f"segment_{i + 1}.{format}")
+            export_segment(input_file, start_ms, end_ms, output_file, format=format)
+    except Exception as e:
+        print(f"Error splitting audio file: {e}")

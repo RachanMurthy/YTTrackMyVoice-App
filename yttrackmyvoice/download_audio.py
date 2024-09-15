@@ -1,7 +1,25 @@
 import os
+import re
 from pytubefix import YouTube
 from pytubefix.cli import on_progress
 from pydub import AudioSegment
+
+def sanitize_filename(filename):
+    """
+    Sanitizes a string to be a valid filename by removing or replacing invalid characters.
+
+    Parameters:
+    - filename: The original filename string.
+
+    Returns:
+    - A sanitized filename string.
+    """
+    # Remove any invalid characters
+    sanitized = re.sub(r'[<>:"/\\|?*\x00-\x1F]', '_', filename)
+    # Remove trailing dots and spaces
+    sanitized = sanitized.rstrip('. ')
+    return sanitized
+
 
 def download_youtube_audio(url, output_path='.', wav_output_path=None):
     """
@@ -32,8 +50,11 @@ def download_youtube_audio(url, output_path='.', wav_output_path=None):
         # Get the file format (e.g., 'webm', 'm4a')
         file_format = audio_stream.subtype
 
-        # Construct the file name using the video's title and format
-        file_name = f"{yt.title}.{file_format}"
+        # Sanitize the video title to create a safe filename
+        sanitized_title = sanitize_filename(yt.title)
+
+        # Construct the file name using the sanitized title and format
+        file_name = f"{sanitized_title}.{file_format}"
         audio_file_path = os.path.join(output_path, file_name)
         
         # Check if the file already exists to avoid re-downloading
@@ -45,7 +66,7 @@ def download_youtube_audio(url, output_path='.', wav_output_path=None):
             print(f"Downloaded audio file: {audio_file_path} in {file_format} format")
         
         # Convert the .webm file to .wav
-        wav_file_name = f"{yt.title}.wav"
+        wav_file_name = f"{sanitized_title}.wav"
         wav_file_path = os.path.join(wav_output_path, wav_file_name)
 
         # Perform the conversion if the .wav file doesn't exist
