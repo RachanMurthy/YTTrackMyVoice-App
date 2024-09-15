@@ -1,5 +1,5 @@
 import os
-from .utils import save_list_to_csv, load_list_from_csv, create_directory_if_not_exists, get_urls
+from .utils import save_list_to_csv, load_list_from_csv, create_directory_if_not_exists, get_urls, split_audio_file
 from .download_audio import download_youtube_audio
 
 def new_project(data_directory='data'):
@@ -144,4 +144,13 @@ def start_project(project_name, data_directory='data'):
             print(f'Folder already exists: {folder_path_video}')
 
         # Download the audio from the YouTube URL
-        download_youtube_audio(url, folder_path_video)
+        audio_file_path = download_youtube_audio(url, folder_path_video)
+
+        if not audio_file_path:
+            return None
+
+        # Split the audio into Segments, By default 10 min segments
+        split_audio_file(
+            audio_file_path,
+            folder_path_video
+        )
