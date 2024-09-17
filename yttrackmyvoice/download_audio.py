@@ -23,7 +23,8 @@ def sanitize_filename(filename):
 
 def download_youtube_audio(url, output_path='.', wav_output_path=None):
     """
-    Downloads the audio stream from a YouTube video given its URL and converts it to a .wav file.
+    Downloads the audio stream from a YouTube video given its URL, converts it to a .wav file, 
+    and returns the path to the .wav file along with the duration of the audio.
 
     Parameters:
     - url: The YouTube video URL.
@@ -31,7 +32,7 @@ def download_youtube_audio(url, output_path='.', wav_output_path=None):
     - wav_output_path: The directory where the converted .wav file will be saved (default is the current directory).
 
     Returns:
-    - The path to the converted .wav file, or None if an error occurred.
+    - A tuple containing the path to the converted .wav file and the duration in seconds, or (None, None) if an error occurred.
     """
     try:
         # Use output_path for wav_output_path if it is not provided
@@ -74,13 +75,16 @@ def download_youtube_audio(url, output_path='.', wav_output_path=None):
             convert_webm_to_wav(audio_file_path, wav_file_path)
         else:
             print(f"Converted .wav file already exists: {wav_file_path}")
+        
+        # Load the .wav file with pydub to get the duration
+        audio_segment = AudioSegment.from_wav(wav_file_path)
+        duration = audio_segment.duration_seconds  # Duration in seconds
 
-        return wav_file_path
+        return wav_file_path, duration
 
     except Exception as e:
-        # Print an error message if the download or conversion fails
-        print(f"Error downloading or converting audio: {str(e)}")
-        return None
+        print(f"An error occurred: {e}")
+        return None, None
 
 
 def convert_webm_to_wav(input_filepath, output_filepath):

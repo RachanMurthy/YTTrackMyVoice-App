@@ -21,3 +21,6 @@ docs/Todo.txt
 
 #.env file
 .env
+
+#.db file
+example.db
