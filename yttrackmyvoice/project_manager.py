@@ -1,171 +1,66 @@
 import os
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
-from .utils import create_directory_if_not_exists, get_urls, split_audio_file
+from .utils import create_directory_if_not_exists, get_urls, split_audio_file, get_key, extract_video_urls_from_playlist
 from .download_audio import download_youtube_audio
 from .database import SessionLocal  # Import the session
 from .database.models import Project, URL, AudioFile, Segment  # Import the Project model
 
-def new_project(data_directory='data'):
-    """
-    Handles the creation of a new project and stores the project in the database.
+def yyt(project_name):
 
-    Parameters:
-    - data_directory: Directory where the project data will be stored (default is 'data').
-
-    Returns:
-    - The name of the newly created project.
-    """
     # Ensure the data directory exists
-    create_directory_if_not_exists(data_directory)
+    create_directory_if_not_exists(get_key('DATA_DIRECTORY'))
 
-    # Create a new database session
-    session: Session = SessionLocal()
+    # Replace spaces with underscores
+    project_name = project_name.replace(" ", "_")
 
+    # Create a session
+    session = SessionLocal()
+    
     try:
-        project_name = None
+        # Check if the project already exists
+        project = session.query(Project).filter_by(project_name=project_name).first()
 
-        while True:
-            # Prompt user for a project name
-            project_name = input("\nPlease enter a name for your new project: ").strip()
+        if project:
+            # If the project already exists, return and print a message
+            print(f"\nContinuing with the existing project: {project.project_name}\n")
+            return project
+        else:
+            # If project doesn't exist, create a new one
+            project_path = os.path.join(get_key('DATA_DIRECTORY'), project_name)
+            new_project = Project(
+                        project_name=project_name,
+                        description="",  # Modify this if you need to collect a description
+                        project_path=project_path
+            )
+            
+            # Ensure the folder exists
+            create_directory_if_not_exists(project_path)
+            print(f"Project Folder ready: {project_path}")
+            
+            # Add the new project to the session and commit the changes
+            session.add(new_project)
+            session.commit()
 
-            # Replace spaces with underscores
-            project_name = project_name.replace(" ", "_")
-
-            if not project_name:
-                print("Project name cannot be empty. Please try again.")
-                continue
-
-            # Check if the project name already exists in the database
-            existing_project = session.query(Project).filter_by(project_name=project_name).first()
-
-            if existing_project:
-                print(f"\nA project with the name '{project_name}' already exists.")
-
-                # Optionally, display existing projects
-                print("\nHere are the available projects:")
-                all_projects = session.query(Project).all()
-                for project in all_projects:
-                    print(f"{project.project_id}. {project.project_name}")
-
-                continue  # Loop again to get a new project name
-            else:
-                # Define the project path
-                project_path = os.path.join(data_directory, project_name)
-
-                # Create the project directory
-                create_directory_if_not_exists(project_path)
-
-                # Create a new Project instance
-                new_project = Project(
-                    project_name=project_name,
-                    description="",  # You can modify this to collect a description if needed
-                    project_path=project_path
-                )
-
-                # Add the new project to the session
-                session.add(new_project)
-
-                try:
-                    # Commit the transaction to save the project in the database
-                    session.commit()
-                    session.refresh(new_project)  # Refresh to get the generated project_id
-                    print(f"\nGreat! A new project '{new_project.project_name}' has been created with ID {new_project.project_id}.\n")
-                    break  # Exit the loop once a valid project is created
-                except IntegrityError:
-                    # Handle the case where the project name is not unique
-                    session.rollback()
-                    print(f"\nA project with the name '{project_name}' already exists. Please choose a different name.")
-                    continue
-
-        return new_project.project_name
-
+            # Refresh the object to get the new project ID
+            session.refresh(new_project)  
+            print(f"\nGreat! A new project '{new_project.project_name}' has been created with ID {new_project.project_id}.\n")
+    
     except Exception as e:
-        print(f"An error occurred: {e}")
+        # Catch any unforeseen errors and roll back the session
         session.rollback()
+        print(f"\nAn error occurred: {str(e)}")
+
     finally:
-        # Close the session to free up resources
+        # Close the session to free resources
         session.close()
 
-
-def continue_project(data_directory='data'):
-    """
-    Handles continuing an existing project by displaying the available projects 
-    and allowing the user to select one by name.
-
-    Parameters:
-    - data_directory: Directory where the project data is stored (default is 'data').
-
-    Returns:
-    - The name of the project to continue, or None if no valid project is found.
-    """
-    # Ensure the data directory exists
-    create_directory_if_not_exists(data_directory)
-
-    # Create a new database session
-    session: Session = SessionLocal()
-
-    try:
-        # Query all existing projects from the database
-        projects = session.query(Project).all()
-
-        # Check if any projects exist
-        if not projects:
-            print("\nNo projects found. Please start a new project first.")
-            return None
-
-        while True:
-            # Display the available projects
-            print("\nHere are the available projects:")
-            for project in projects:
-                print(f"- {project.project_name}")
-
-            # Prompt the user for the project name
-            project_name = input("\nPlease enter the name of the project you want to continue: ").strip()
-
-            # Check if the entered project exists (case-sensitive)
-            selected_project = session.query(Project).filter_by(project_name=project_name).first()
-
-            if selected_project:
-                print(f"\nContinuing with the existing project: {selected_project.project_name}\n")
-                return selected_project.project_name
-            else:
-                print(f"\nNo project found with the name '{project_name}'. Please enter a valid project name.")
-                # Optionally, you can ask the user to try again or exit
-                retry = input("Would you like to try again? (y/n): ").strip().lower()
-                if retry != 'y':
-                    print("Exiting project continuation.")
-                    return None
-
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        return None
-    finally:
-        # Close the session to free up resources
-        session.close()
+    return new_project
 
 
-def start_project(project_name, data_directory='data'):
-    """
-    Starts the project by managing folder creation, downloading YouTube audio,
-    splitting audio into segments, and updating the database with segments.
+def urls(project_name, url_list):
 
-    Parameters:
-    - project_name (str): The name of the project.
-    - data_directory (str): Directory where the project data is stored (default is 'data').
-
-    Returns:
-    - None
-    """
-    # Define the main project folder path
-    project_folder_path = os.path.join(data_directory, project_name)
-
-    # Ensure the main project folder exists
-    create_directory_if_not_exists(project_folder_path)
-    print(f"Project directory ensured at: {project_folder_path}")
-
-    # Create a new database session
-    session: Session = SessionLocal()
+    session = SessionLocal()
 
     try:
         # Retrieve the project from the database
@@ -174,88 +69,91 @@ def start_project(project_name, data_directory='data'):
             print(f"Project '{project_name}' does not exist in the database.")
             return
 
-        # Retrieve all URLs associated with the project
-        get_urls(project_name)
-        urls = project.urls
+        # Display existing URLs
+        if project.urls:
+            print(f"The project '{project_name}' contains the following URLs:\n")
+            for url_entry in project.urls:
+                print(f"- {url_entry.url}")
+        else:
+            print(f"The project '{project_name}' has no saved URLs.")
 
-        if not urls:
-            print(f"No URLs found for project '{project_name}'. Please add URLs first.")
-            return
+        # Iterate through playlist URLs
+        for url in url_list:
+            existing_url = session.query(URL).filter_by(url=url, project_id=project.project_id).first()
+            if existing_url:
+                print(f"URL already exists: {url}")
+                continue
+                    
+            # Append the new URL
+            new_url = URL(project_id=project.project_id, url=url)
+            session.add(new_url)
+            print(f"Added new URL : {url}")
 
-        # Iterate through each URL and process it
-        for url_entry in urls:
-            url = url_entry.url
-            url_type = url_entry.url_type
-
-            # Generate a unique folder name based on URL ID
-            folder_name = f"url_{url_entry.id}"
-
-            # Define the folder path for this URL
-            folder_path_video = os.path.join(project_folder_path, folder_name)
-
-            # Ensure the folder exists
-            create_directory_if_not_exists(folder_path_video)
-            print(f"Folder ready: {folder_path_video}")
-
-            # Download the audio from the YouTube URL
-            audio_file_path, duration = download_youtube_audio(url, folder_path_video)
-
-            if not audio_file_path:
-                print(f"Failed to download audio for URL: {url}")
-                continue  # Skip to the next URL
-
-            # Split the audio into segments and get segment information
-            folder_path_video = os.path.join(folder_path_video, "segments")
-            segments_info = split_audio_file(audio_file_path, folder_path_video, format="wav")
-
-            # Create a new AudioFile record
-            audio_file = AudioFile(
-                project_id=project.project_id,
-                url_id=url_entry.id,  # Associate with the specific URL
-                url_name=folder_name,
-                file_name=os.path.basename(audio_file_path),
-                audio_path=audio_file_path,
-                duration_seconds=duration
-            )
-
-            # Add the AudioFile to the session
-            session.add(audio_file)
-            session.flush()  # Flush to assign an audio_id to audio_file
-
-            # Create Segment records
-            for segment in segments_info:
-                segment_file_name = f"{os.path.splitext(audio_file.file_name)[0]}_{segment['segment_number']}.{os.path.splitext(segment['file_name'])[1].lstrip('.')}"
-                segment_file_path = os.path.join(folder_path_video, segment_file_name)
-
-                # Rename the segment file to match the desired naming convention if necessary
-                if os.path.exists(segment['file_path']):
-                    os.rename(segment['file_path'], segment_file_path)
-                else:
-                    print(f"Segment file not found: {segment['file_path']}")
-                    continue  # Skip this segment
-
-                # Create a new Segment instance
-                new_segment = Segment(
-                    audio_id=audio_file.audio_id,
-                    start_time=segment['start_time'],
-                    end_time=segment['end_time'],
-                    duration=segment['duration'],
-                    file_path=segment_file_path,
-                    file_name=segment_file_name
-                )
-
-                # Add the Segment to the session
-                session.add(new_segment)
-                print(f"Segment '{segment_file_name}' added to the database.")
-
-            print(f"Audio file '{audio_file.file_name}' and its segments have been added to the database.")
-
-        # Commit all new records to the database
+        # Commit all new URLs to the database
         session.commit()
-        print(f"Project '{project_name}' has been started successfully.")
+
+        # Optionally, update the folder structure or perform other operations here
+        print(f"URLs successfully updated for project '{project_name}'.")
 
     except Exception as e:
         session.rollback()
-        print(f"An error occurred while starting the project: {e}")
+        print(f"An error occurred while managing URLs: {e}")
     finally:
         session.close()
+
+
+def playlist(project_name, playlist_list):
+    playlist_urls = []
+    for playlist in playlist_list:
+        playlist_urls.extend(extract_video_urls_from_playlist(playlist))
+    
+    urls(project_name, playlist_urls)
+
+
+def download_audio(project_name):
+        
+    session = SessionLocal()
+    # Retrieve the project from the database
+    project = session.query(Project).filter_by(project_name=project_name).first()
+    urls = project.urls
+
+    if not project:
+        print(f"Project '{project_name}' does not exist in the database.")
+        return
+
+    if not urls:
+        print(f"No URLs found for project '{project_name}'. Please add URLs first.")
+        return
+        
+    # Iterate through each URL and process it
+    for url_record in urls:
+        url_id = url_record.id
+        # Download the audio from the YouTube URL
+        download_youtube_audio(url_id)
+
+
+def segment_audio(project_name):
+    session = SessionLocal()
+    # Retrieve the project from the database
+    project = session.query(Project).filter_by(project_name=project_name).first()
+    audio_files = project.audio_files
+
+    if not project:
+        print(f"Project '{project_name}' does not exist in the database.")
+        return
+
+    if not audio_files:
+        print(f"No Audio Files found for project '{project_name}'. Please add Audio File first.")
+        return
+    
+    for audio_file in audio_files:
+        audio_file_id = audio_file.audio_id
+        audio_file_path = audio_file.audio_path
+        audio_segments = session.query(Segment).filter_by(audio_id=audio_file_id).first()
+
+        if audio_segments:
+            print(f"audio segments exist for '{audio_file_path}'")
+            continue
+
+        # Split the audio into segments and get segment information
+        split_audio_file(audio_file_id)
