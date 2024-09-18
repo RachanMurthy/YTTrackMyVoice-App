@@ -27,14 +27,13 @@ class URL(Base):
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     project_id = Column(Integer, ForeignKey('projects.project_id'), nullable=False)
     url = Column(String(2083), nullable=False)  # 2083 is the maximum URL length
-    url_type = Column(String(50), nullable=False)  # 'single' or 'playlist'
 
     # Relationships
     project = relationship("Project", back_populates="urls")
     audio_files = relationship("AudioFile", back_populates="url", cascade="all, delete, delete-orphan")
 
     def __repr__(self):
-        return f"<URL(id={self.id}, project_id={self.project_id}, url='{self.url}', type='{self.url_type}')>"
+        return f"<URL(id={self.id}, project_id={self.project_id}, url='{self.url}')>"
 
 class AudioFile(Base):
     __tablename__ = 'audio_files'
@@ -45,6 +44,7 @@ class AudioFile(Base):
     url_name = Column(String(255), nullable=False)  # folder name inside project
     file_name = Column(String(255), nullable=False)  # file name inside url_name_folder
     audio_path = Column(String(500), nullable=False)  # full path to the audio file
+    audio_folder_path = Column(String(500), nullable=False)  # full path to the audio folder
     duration_seconds = Column(DECIMAL(10, 2), nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
