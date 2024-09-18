@@ -3,69 +3,9 @@ from pydub import AudioSegment
 from dotenv import load_dotenv
 from sqlalchemy.orm import Session
 from .database import SessionLocal
-from .database.models import Project, URL
+from .database.models import Project, URL, AudioFile, Segment
 from math import ceil
-import csv
 import os
-
-def save_list_to_csv(data_list, file_path, mode='w'):
-    """
-    Saves a list of items to a CSV file.
-    
-    Args:
-        data_list (list): A list of items to be saved.
-        file_path (str): The path to the CSV file where the data will be saved.
-        mode (str): File open mode, 'w' for overwrite, 'a' for append. Defaults to 'w'.
-    
-    Behavior:
-        - Opens the file at the specified path in either write mode ('w') or append mode ('a').
-        - Iterates over the list of items and writes each item to a new row in the CSV file.
-        - Prints a confirmation message once the data has been saved.
-    """
-    # Open the CSV file in the specified mode, with 'newline' to prevent extra blank lines in the output.
-    with open(file_path, mode=mode, newline='') as file:
-        writer = csv.writer(file)
-        # Write each item from the list as a new row in the CSV
-        for item in data_list:
-            writer.writerow([item])
-    
-    # Message indicating saving was successful
-    action = "Appended" if mode == 'a' else "Saved"
-    print(f"Items {action} to {file_path}")
-
-
-def load_list_from_csv(file_path):
-    """
-    Loads a list of items from a CSV file and returns them in a dictionary with index as the key.
-    
-    Args:
-        file_path (str): The path to the CSV file from which items will be loaded.
-    
-    Returns:
-        dict: A dictionary with index as the key and items as the values.
-    
-    Behavior:
-        - Opens the file in read mode ('r') if the file exists.
-        - Reads the CSV file and stores each item in a dictionary with an index.
-        - If the file does not exist, an empty dictionary is returned.
-    """
-    data_dict = {}
-    
-    # Check if the file exists to avoid FileNotFoundError.
-    if os.path.exists(file_path):
-        # Open the file in read mode.
-        with open(file_path, mode='r') as file:
-            reader = csv.reader(file)
-            # Initialize a counter for the index
-            count = 0
-            # Loop through each row and store the item in the dictionary with the index
-            for row in reader:
-                data_dict[count] = row[0]
-                count += 1
-    
-    # Return the dictionary of indexed items. If the file doesn't exist, it will return an empty dictionary.
-    return data_dict
-
 
 def create_directory_if_not_exists(directory_path):
     """
@@ -88,37 +28,6 @@ def create_directory_if_not_exists(directory_path):
         # Print message if the directory already exists
         print(f"Directory already exists: {directory_path}")
         return False  # Return False indicating the directory already existed
-
-
-def create_folders_for_urls(url_list, main_folder):
-    """
-    Creates a directory for all videos and then creates a directory for each URL inside the main folder.
-    
-    Args:
-        url_list (dict): A dictionary of URLs with index as the key.
-        main_folder (str): The main folder where all video-specific folders will be created.
-    
-    Behavior:
-        - Creates a main folder (if it doesn't exist) to store all video-specific folders.
-        - For each URL, creates a folder named 'Video_<index>' inside the main folder.
-        - Uses 'create_directory_if_not_exists' to check if the folder already exists before creating.
-    """
-    # First, create the main folder that will contain all video-specific folders
-    create_directory_if_not_exists(main_folder)
-    
-    # Loop through each URL in the list
-    for key, value in url_list.items():
-        # Generate a folder name for each URL, based on its index
-        folder_name = f'Video_{key}'
-        
-        # Create the folder path inside the main folder
-        folder_path = os.path.join(main_folder, folder_name)
-        
-        # Use the function to create the folder if it does not exist
-        create_directory_if_not_exists(folder_path)
-        
-        # Additional logic can be placed here after the folder is created
-        print(f'Processing folder: {folder_path}')
 
 
 def extract_video_urls_from_playlist(playlist_url):
@@ -271,7 +180,7 @@ def export_segment(input_file, start_ms, end_ms, output_file, format="wav"):
         print(f"Error exporting segment: {e}")
 
 
-def split_audio_file(input_file, output_dir, segment_length_ms=10 * 60 * 1000, format="wav"):
+def split_audio_file(audio_id, segment_length_ms=10 * 60 * 1000, format="wav"):
     """
     Split an audio file into fixed-length segments and return segment details.
 
@@ -284,14 +193,20 @@ def split_audio_file(input_file, output_dir, segment_length_ms=10 * 60 * 1000, f
     Returns:
     - List[dict]: A list of dictionaries containing segment details.
     """
-    segments_info = []
+    session = SessionLocal()
+    audio_record = session.query(AudioFile).filter_by(audio_id=audio_id).first()
+
     try:
+        
+        audio_file_path = audio_record.audio_path
+        audio_folder_path = audio_record.audio_folder_path
+
         # Create a subdirectory for segments
-        segments_dir = os.path.join(output_dir, "segments")
+        segments_dir = os.path.join(audio_folder_path, "segments")
         create_directory_if_not_exists(segments_dir)
 
         # Load the audio file
-        audio = AudioSegment.from_file(input_file)
+        audio = AudioSegment.from_file(audio_file_path)
         total_length_ms = len(audio)
 
         # Calculate the number of segments
@@ -302,27 +217,35 @@ def split_audio_file(input_file, output_dir, segment_length_ms=10 * 60 * 1000, f
             start_ms = i * segment_length_ms
             end_ms = min((i + 1) * segment_length_ms, total_length_ms)
             segment = audio[start_ms:end_ms]
-            segment_filename = f"segment_{i + 1}.{format}"
-            segment_path = os.path.join(segments_dir, segment_filename)
-            segment.export(segment_path, format=format)
-            print(f"Exported: {segment_path}")
+            segment_file_name = f"segment_{i + 1}.{format}"
+            segment_file_path = os.path.join(segments_dir, segment_file_name)
+            segment.export(segment_file_path, format=format)
+            print(f"Exported: {segment_file_path}")
 
             # Calculate duration
             duration_seconds = (end_ms - start_ms) / 1000  # Convert ms to seconds
 
-            # Store segment details
-            segments_info.append({
-                'segment_number': i + 1,
-                'file_name': segment_filename,
-                'file_path': segment_path,
-                'start_time': start_ms / 1000,  # Convert ms to seconds
-                'end_time': end_ms / 1000,      # Convert ms to seconds
-                'duration': duration_seconds
-            })
+            try:
+                # Create a new Segment instance
+                new_segment = Segment(
+                        audio_id=audio_record.audio_id,
+                        start_time=start_ms,
+                        end_time=end_ms,
+                        duration=duration_seconds,
+                        file_path=segment_file_path,
+                        file_name=segment_file_name
+                )
+                session.add(new_segment)
+                session.commit()
+            except Exception as e:
+                session.rollback()
+                print(f"An error occurred while starting the project: {e}")
+            finally:
+                session.close()
 
-        print(f"Audio file '{input_file}' has been split into {num_segments} segments.")
-        return segments_info
+        print(f"Audio file '{audio_file_path}' has been split into {num_segments} segments.")
+        return new_segment
 
     except Exception as e:
         print(f"Error splitting audio file: {e}")
-        return []
+        return None
