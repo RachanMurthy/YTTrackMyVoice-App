@@ -94,7 +94,7 @@ def urls(project_name, url_list):
             # Append the new URL
             new_url = URL(
                 project_id=project.project_id,
-                url=yt.watch_url,
+                url=url,
                 title=yt.title,
                 author=yt.author,
                 views=yt.views,
