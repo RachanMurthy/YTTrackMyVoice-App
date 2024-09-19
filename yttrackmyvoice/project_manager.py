@@ -127,12 +127,12 @@ def download_audio(project_name):
         
     # Iterate through each URL and process it
     for url_record in urls:
-        url_id = url_record.id
+        url_id = url_record.url_id
         # Download the audio from the YouTube URL
         download_youtube_audio(url_id)
 
 
-def segment_audio(project_name):
+def segment_audio(project_name, segment_length_ms=10 * 60 * 1000):
     session = SessionLocal()
     # Retrieve the project from the database
     project = session.query(Project).filter_by(project_name=project_name).first()
@@ -156,4 +156,4 @@ def segment_audio(project_name):
             continue
 
         # Split the audio into segments and get segment information
-        split_audio_file(audio_file_id)
+        split_audio_file(audio_file_id, segment_length_ms)

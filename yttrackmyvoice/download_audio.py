@@ -40,7 +40,7 @@ def download_youtube_audio(url_id):
     try:
         session = SessionLocal()
         # Retrieve the project from the database
-        url_record = session.query(URL).filter_by(id=url_id).first()
+        url_record = session.query(URL).filter_by(url_id=url_id).first()
         url = url_record.url
 
         # Create a YouTube object with a progress callback
@@ -62,7 +62,7 @@ def download_youtube_audio(url_id):
         project_path = project.project_path
 
         # Generate a unique folder name based on URL ID
-        url_id = f"{url_record.id}"
+        url_id = f"{url_record.url_id}"
 
         # Define the folder path for this URL
         audio_folder_path = os.path.join(project_path, url_id)

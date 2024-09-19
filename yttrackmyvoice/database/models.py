@@ -24,7 +24,7 @@ class Project(Base):
 class URL(Base):
     __tablename__ = 'urls'
 
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    url_id = Column(Integer, primary_key=True, index=True, autoincrement=True)  # Changed from id to url_id
     project_id = Column(Integer, ForeignKey('projects.project_id'), nullable=False)
     url = Column(String(2083), nullable=False)  # 2083 is the maximum URL length
 
@@ -33,14 +33,14 @@ class URL(Base):
     audio_files = relationship("AudioFile", back_populates="url", cascade="all, delete, delete-orphan")
 
     def __repr__(self):
-        return f"<URL(id={self.id}, project_id={self.project_id}, url='{self.url}')>"
+        return f"<URL(url_id={self.url_id}, project_id={self.project_id}, url='{self.url}')>"
 
 class AudioFile(Base):
     __tablename__ = 'audio_files'
 
     audio_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     project_id = Column(Integer, ForeignKey('projects.project_id'), nullable=False)
-    url_id = Column(Integer, ForeignKey('urls.id'), nullable=False)  # Foreign Key
+    url_id = Column(Integer, ForeignKey('urls.url_id'), nullable=False)  # Foreign Key updated to url_id
     url_name = Column(String(255), nullable=False)  # folder name inside project
     file_name = Column(String(255), nullable=False)  # file name inside url_name_folder
     audio_path = Column(String(500), nullable=False)  # full path to the audio file
@@ -51,7 +51,7 @@ class AudioFile(Base):
     # Relationships
     project = relationship("Project", back_populates="audio_files")
     url = relationship("URL", back_populates="audio_files")
-    segments = relationship("Segment", back_populates="audio_file", cascade="all, delete, delete-orphan")  # New Relationship
+    segments = relationship("Segment", back_populates="audio_file", cascade="all, delete, delete-orphan")
 
     def __repr__(self):
         return (f"<AudioFile(id={self.audio_id}, project_id={self.project_id}, url_id={self.url_id}, "

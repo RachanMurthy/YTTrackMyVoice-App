@@ -180,7 +180,7 @@ def export_segment(input_file, start_ms, end_ms, output_file, format="wav"):
         print(f"Error exporting segment: {e}")
 
 
-def split_audio_file(audio_id, segment_length_ms=10 * 60 * 1000, format="wav"):
+def split_audio_file(audio_id, segment_length_ms, format="wav"):
     """
     Split an audio file into fixed-length segments and return segment details.
 
