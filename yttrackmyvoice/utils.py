@@ -211,37 +211,36 @@ def split_audio_file(audio_id, segment_length_ms, format="wav"):
 
         # Calculate the number of segments
         num_segments = ceil(total_length_ms / segment_length_ms)
+        try:
+            # Split and export segments
+            for i in range(num_segments):
+                start_ms = i * segment_length_ms
+                end_ms = min((i + 1) * segment_length_ms, total_length_ms)
+                segment = audio[start_ms:end_ms]
+                segment_file_name = f"segment_{i + 1}.{format}"
+                segment_file_path = os.path.join(segments_dir, segment_file_name)
+                segment.export(segment_file_path, format=format)
+                print(f"Exported: {segment_file_path}")
 
-        # Split and export segments
-        for i in range(num_segments):
-            start_ms = i * segment_length_ms
-            end_ms = min((i + 1) * segment_length_ms, total_length_ms)
-            segment = audio[start_ms:end_ms]
-            segment_file_name = f"segment_{i + 1}.{format}"
-            segment_file_path = os.path.join(segments_dir, segment_file_name)
-            segment.export(segment_file_path, format=format)
-            print(f"Exported: {segment_file_path}")
+                # Calculate duration
+                duration_seconds = (end_ms - start_ms) / 1000  # Convert ms to seconds
 
-            # Calculate duration
-            duration_seconds = (end_ms - start_ms) / 1000  # Convert ms to seconds
-
-            try:
+                
                 # Create a new Segment instance
                 new_segment = Segment(
                         audio_id=audio_record.audio_id,
                         start_time=start_ms,
                         end_time=end_ms,
-                        duration=duration_seconds,
-                        file_path=segment_file_path,
+                        duration=duration_seconds,                            file_path=segment_file_path,
                         file_name=segment_file_name
                 )
                 session.add(new_segment)
                 session.commit()
-            except Exception as e:
-                session.rollback()
-                print(f"An error occurred while starting the project: {e}")
-            finally:
-                session.close()
+        except Exception as e:
+            session.rollback()
+            print(f"An error occurred while starting the project: {e}")
+        finally:
+            session.close()
 
         print(f"Audio file '{audio_file_path}' has been split into {num_segments} segments.")
         return new_segment

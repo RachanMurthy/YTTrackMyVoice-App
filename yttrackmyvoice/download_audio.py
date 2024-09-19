@@ -99,8 +99,7 @@ def download_youtube_audio(url_id):
                 audio_file = AudioFile(
                     project_id=project.project_id,
                     url_id=url_id,  # Associate with the specific URL
-                    url_name=sanitized_title,
-                    file_name=wav_file_name,
+                    url_name=sanitized_title, 
                     audio_path=wav_file_path,
                     audio_folder_path=audio_folder_path,
                     duration_seconds=duration

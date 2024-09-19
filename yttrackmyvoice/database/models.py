@@ -42,7 +42,6 @@ class AudioFile(Base):
     project_id = Column(Integer, ForeignKey('projects.project_id'), nullable=False)
     url_id = Column(Integer, ForeignKey('urls.url_id'), nullable=False)  # Foreign Key updated to url_id
     url_name = Column(String(255), nullable=False)  # folder name inside project
-    file_name = Column(String(255), nullable=False)  # file name inside url_name_folder
     audio_path = Column(String(500), nullable=False)  # full path to the audio file
     audio_folder_path = Column(String(500), nullable=False)  # full path to the audio folder
     duration_seconds = Column(DECIMAL(10, 2), nullable=True)
@@ -55,7 +54,7 @@ class AudioFile(Base):
 
     def __repr__(self):
         return (f"<AudioFile(id={self.audio_id}, project_id={self.project_id}, url_id={self.url_id}, "
-                f"url_name='{self.url_name}', file_name='{self.file_name}', audio_path='{self.audio_path}', "
+                f"url_name='{self.url_name}', audio_path='{self.audio_path}', "
                 f"duration_seconds={self.duration_seconds}, created_at={self.created_at})>")
 
 class Segment(Base):
