@@ -54,99 +54,6 @@ def extract_video_urls_from_playlist(playlist_url):
         return []
 
 
-def get_urls(project_name):
-    """
-    Manages the URLs for a given project, allowing the user to add new video or playlist URLs.
-
-    Args:
-    - project_name (str): The name of the project.
-    - folder_path (str): The path to the project folder where URLs will be saved.
-
-    Returns:
-    - None
-    """
-    session: Session = SessionLocal()
-
-    try:
-        # Retrieve the project from the database
-        project = session.query(Project).filter_by(project_name=project_name).first()
-        if not project:
-            print(f"Project '{project_name}' does not exist in the database.")
-            return
-
-        # Display existing URLs
-        if project.urls:
-            print(f"The project '{project_name}' contains the following URLs:\n")
-            for url_entry in project.urls:
-                print(f"- {url_entry.url} ({url_entry.url_type})")
-        else:
-            print(f"The project '{project_name}' has no saved URLs.")
-
-        print("\nWould you like to submit a single video URL or a playlist URL?")
-        print("Enter '1' for a single video, '2' for a playlist, or type 'STOP' to exit.")
-
-        while True:
-            # Get user input for a single URL or playlist, or stop
-            choice = input("Enter your choice (1 for URL, 2 for playlist, 'STOP' to end): ").strip()
-
-            if choice.upper() == 'STOP':
-                break
-
-            if choice == '1':
-                # Handle single video URL input
-                user_input = input("Enter the single URL (or type 'STOP' to end): ").strip()
-                if user_input.upper() == 'STOP':
-                    break
-                
-                # Check if the URL already exists in the database (query-based)
-                existing_url = session.query(URL).filter_by(url=user_input, project_id=project.project_id).first()
-                if existing_url:
-                    print(f"URL already exists: {user_input}")
-                    continue
-
-                # Append the new URL
-                new_url = URL(project_id=project.project_id, url=user_input, url_type='single')
-                session.add(new_url)
-                print(f"Added new URL: {user_input}")
-
-            elif choice == '2':
-                # Handle playlist URL input
-                user_input = input("Enter the playlist URL (or type 'STOP' to end): ").strip()
-                if user_input.upper() == 'STOP':
-                    break
-                
-                # Extract all video URLs from the playlist
-                playlist_urls = extract_video_urls_from_playlist(user_input)  # Ensure this function is defined
-
-                # Check if each playlist URL already exists in the database (query-based)
-                for playlist_url in playlist_urls:
-                    existing_url = session.query(URL).filter_by(url=playlist_url, project_id=project.project_id).first()
-                    if existing_url:
-                        print(f"URL already exists: {playlist_url}")
-                        continue
-                    
-                    # Append the new URL
-                    new_url = URL(project_id=project.project_id, url=playlist_url, url_type='playlist')
-                    session.add(new_url)
-                    print(f"Added new URL from playlist: {playlist_url}")
-
-            else:
-                # Handle invalid input
-                print("Invalid input. Please type '1' for URL, '2' for playlist, or 'STOP' to end.")
-
-        # Commit all new URLs to the database
-        session.commit()
-
-        # Optionally, update the folder structure or perform other operations here
-        print(f"URLs successfully updated for project '{project_name}'.")
-
-    except Exception as e:
-        session.rollback()
-        print(f"An error occurred while managing URLs: {e}")
-    finally:
-        session.close()
-
-
 def get_key(secret_key):
     # Load the .env file
     load_dotenv()
@@ -180,7 +87,7 @@ def export_segment(input_file, start_ms, end_ms, output_file, format="wav"):
         print(f"Error exporting segment: {e}")
 
 
-def split_audio_file(audio_id, segment_length_ms=10 * 60 * 1000, format="wav"):
+def split_audio_file(audio_id, segment_length_ms, format="wav"):
     """
     Split an audio file into fixed-length segments and return segment details.
 
@@ -211,37 +118,36 @@ def split_audio_file(audio_id, segment_length_ms=10 * 60 * 1000, format="wav"):
 
         # Calculate the number of segments
         num_segments = ceil(total_length_ms / segment_length_ms)
+        try:
+            # Split and export segments
+            for i in range(num_segments):
+                start_ms = i * segment_length_ms
+                end_ms = min((i + 1) * segment_length_ms, total_length_ms)
+                segment = audio[start_ms:end_ms]
+                segment_file_name = f"segment_{i + 1}.{format}"
+                segment_file_path = os.path.join(segments_dir, segment_file_name)
+                segment.export(segment_file_path, format=format)
+                print(f"Exported: {segment_file_path}")
 
-        # Split and export segments
-        for i in range(num_segments):
-            start_ms = i * segment_length_ms
-            end_ms = min((i + 1) * segment_length_ms, total_length_ms)
-            segment = audio[start_ms:end_ms]
-            segment_file_name = f"segment_{i + 1}.{format}"
-            segment_file_path = os.path.join(segments_dir, segment_file_name)
-            segment.export(segment_file_path, format=format)
-            print(f"Exported: {segment_file_path}")
+                # Calculate duration
+                duration_seconds = (end_ms - start_ms) / 1000  # Convert ms to seconds
 
-            # Calculate duration
-            duration_seconds = (end_ms - start_ms) / 1000  # Convert ms to seconds
-
-            try:
+                
                 # Create a new Segment instance
                 new_segment = Segment(
                         audio_id=audio_record.audio_id,
                         start_time=start_ms,
                         end_time=end_ms,
-                        duration=duration_seconds,
-                        file_path=segment_file_path,
-                        file_name=segment_file_name
+                        duration=duration_seconds,                            
+                        file_path=segment_file_path
                 )
                 session.add(new_segment)
                 session.commit()
-            except Exception as e:
-                session.rollback()
-                print(f"An error occurred while starting the project: {e}")
-            finally:
-                session.close()
+        except Exception as e:
+            session.rollback()
+            print(f"An error occurred while starting the project: {e}")
+        finally:
+            session.close()
 
         print(f"Audio file '{audio_file_path}' has been split into {num_segments} segments.")
         return new_segment
