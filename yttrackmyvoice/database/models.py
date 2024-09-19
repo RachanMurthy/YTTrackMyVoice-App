@@ -51,7 +51,6 @@ class AudioFile(Base):
 
     project_id = Column(Integer, ForeignKey('projects.project_id'), nullable=False)
     url_id = Column(Integer, ForeignKey('urls.url_id'), nullable=False)  # Foreign Key updated to url_id
-    url_name = Column(String(255), nullable=False)  # folder name inside project
     
     duration_seconds = Column(DECIMAL(10, 2), nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
