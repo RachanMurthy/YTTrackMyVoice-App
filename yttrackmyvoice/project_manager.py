@@ -1,7 +1,7 @@
 import os
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
-from .utils import create_directory_if_not_exists, get_urls, split_audio_file, get_key, extract_video_urls_from_playlist
+from .utils import create_directory_if_not_exists, split_audio_file, get_key, extract_video_urls_from_playlist
 from .download_audio import download_youtube_audio
 from .database import SessionLocal  # Import the session
 from .database.models import Project, URL, AudioFile, Segment  # Import the Project model
