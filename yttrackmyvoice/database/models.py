@@ -28,22 +28,31 @@ class URL(Base):
     project_id = Column(Integer, ForeignKey('projects.project_id'), nullable=False)
     url = Column(String(2083), nullable=False)  # 2083 is the maximum URL length
 
+    # New Columns with Simplified Names
+    title = Column(String(255), nullable=True)          # Video title
+    author = Column(String(255), nullable=True)         # Video author/channel
+    views = Column(Integer, nullable=True)              # Number of views
+    description = Column(Text, nullable=True)           # Video description
+
     # Relationships
     project = relationship("Project", back_populates="urls")
     audio_files = relationship("AudioFile", back_populates="url", cascade="all, delete, delete-orphan")
 
     def __repr__(self):
-        return f"<URL(url_id={self.url_id}, project_id={self.project_id}, url='{self.url}')>"
-
+        return (f"<URL(url_id={self.url_id}, project_id={self.project_id}, url='{self.url}', "
+                f"title='{self.title}', author='{self.author}', views={self.views})>")
+    
 class AudioFile(Base):
     __tablename__ = 'audio_files'
 
     audio_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    audio_path = Column(String(500), nullable=False)  # full path to the audio file
+    audio_folder_path = Column(String(500), nullable=False)  # full path to the audio folder
+
     project_id = Column(Integer, ForeignKey('projects.project_id'), nullable=False)
     url_id = Column(Integer, ForeignKey('urls.url_id'), nullable=False)  # Foreign Key updated to url_id
     url_name = Column(String(255), nullable=False)  # folder name inside project
-    audio_path = Column(String(500), nullable=False)  # full path to the audio file
-    audio_folder_path = Column(String(500), nullable=False)  # full path to the audio folder
+    
     duration_seconds = Column(DECIMAL(10, 2), nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 

@@ -5,6 +5,7 @@ from .utils import create_directory_if_not_exists, split_audio_file, get_key, ex
 from .download_audio import download_youtube_audio
 from .database import SessionLocal  # Import the session
 from .database.models import Project, URL, AudioFile, Segment  # Import the Project model
+from pytubefix import YouTube
 
 def yyt(project_name):
 
@@ -83,9 +84,22 @@ def urls(project_name, url_list):
             if existing_url:
                 print(f"URL already exists: {url}")
                 continue
-                    
+
+            try:
+                yt = YouTube(url)
+            except Exception as e:
+                print(f"""Failed to process the YouTube URL '{url}'. Error details: {e}.
+                    Please check if the URL is valid and your internet connection is stable.""")
+
             # Append the new URL
-            new_url = URL(project_id=project.project_id, url=url)
+            new_url = URL(
+                project_id=project.project_id,
+                url=yt.watch_url,
+                title=yt.title,
+                author=yt.author,
+                views=yt.views,
+                description=yt.description
+            )
             session.add(new_url)
             print(f"Added new URL : {url}")
 
