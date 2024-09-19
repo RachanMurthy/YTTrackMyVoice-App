@@ -231,8 +231,8 @@ def split_audio_file(audio_id, segment_length_ms, format="wav"):
                         audio_id=audio_record.audio_id,
                         start_time=start_ms,
                         end_time=end_ms,
-                        duration=duration_seconds,                            file_path=segment_file_path,
-                        file_name=segment_file_name
+                        duration=duration_seconds,                            
+                        file_path=segment_file_path
                 )
                 session.add(new_segment)
                 session.commit()

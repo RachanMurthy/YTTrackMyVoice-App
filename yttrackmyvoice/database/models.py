@@ -66,7 +66,6 @@ class Segment(Base):
     end_time = Column(DECIMAL(10, 2), nullable=False)    # in seconds
     duration = Column(DECIMAL(10, 2), nullable=False)    # in seconds
     file_path = Column(String(500), nullable=False)
-    file_name = Column(String(255), nullable=False)      # audio_files.file_name + _ + (0,1,2,…n)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     # Relationships
@@ -75,4 +74,4 @@ class Segment(Base):
     def __repr__(self):
         return (f"<Segment(id={self.segment_id}, audio_id={self.audio_id}, start_time={self.start_time}, "
                 f"end_time={self.end_time}, duration={self.duration}, file_path='{self.file_path}', "
-                f"file_name='{self.file_name}', created_at={self.created_at})>")
+                f"created_at={self.created_at})>")
