@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, DECIMAL
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, DECIMAL, LargeBinary
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
@@ -16,6 +16,7 @@ class Project(Base):
     description = Column(Text, nullable=True)  # Optional project description
     project_path = Column(String(255), nullable=True)  # Optional file path for project-related files
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))  # Automatically set to the current UTC time
+
 
     # One-to-many relationship with the URL and AudioFile tables
     urls = relationship("URL", back_populates="project", cascade="all, delete, delete-orphan")  # Cascade delete ensures associated URLs are deleted when a project is deleted
@@ -39,6 +40,7 @@ class URL(Base):
     author = Column(String(255), nullable=True)  # Author or channel name of the video
     views = Column(Integer, nullable=True)  # Number of views for the video
     description = Column(Text, nullable=True)  # Description of the video
+
 
     # One-to-many relationship with the AudioFile table and the Project table
     project = relationship("Project", back_populates="urls")  # Many URLs can belong to one project
@@ -66,6 +68,7 @@ class AudioFile(Base):
     duration_seconds = Column(DECIMAL(10, 2), nullable=True)  # Storing the duration in seconds, allowing decimals
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))  # Automatically set to the current UTC time
 
+
     # Relationships with the Project and URL tables
     project = relationship("Project", back_populates="audio_files")  # Many audio files can belong to one project
     url = relationship("URL", back_populates="audio_files")  # Many audio files can belong to one URL
@@ -86,16 +89,33 @@ class Segment(Base):
     segment_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     audio_id = Column(Integer, ForeignKey('audio_files.audio_id', ondelete='CASCADE'), nullable=False)  # Link to the audio file, with cascade delete
     start_time = Column(DECIMAL(10, 2), nullable=False)  # Start time of the segment, in seconds
-    end_time = Column(DECIMAL(10, 2), nullable=False)  # End time of the segment, in seconds
-    duration = Column(DECIMAL(10, 2), nullable=False)  # Duration of the segment, in seconds
-    file_path = Column(String(500), nullable=False)  # Full file path to the segmented audio file
+    end_time = Column(DECIMAL(10, 2), nullable=False)    # End time of the segment, in seconds
+    duration = Column(DECIMAL(10, 2), nullable=False)    # Duration of the segment, in seconds
+    file_path = Column(String(500), nullable=False)      # Full file path to the segmented audio file
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))  # Automatically set to the current UTC time
 
-    # Relationship with the AudioFile table
+    # Relationships
     audio_file = relationship("AudioFile", back_populates="segments")  # Many segments can belong to one audio file
+    embeddings = relationship("Embedding", back_populates="segment", cascade="all, delete, delete-orphan")  # One segment has many embeddings
 
     def __repr__(self):
-        # Debug representation for the Segment model
-        return (f"<Segment(id={self.segment_id}, audio_id={self.audio_id}, start_time={self.start_time}, "
-                f"end_time={self.end_time}, duration={self.duration}, file_path='{self.file_path}', "
+        return (f"<Segment(id={self.segment_id}, audio_id={self.audio_id}, "
+                f"start_time={self.start_time}, end_time={self.end_time}, "
+                f"duration={self.duration}, file_path='{self.file_path}', "
+                f"created_at={self.created_at})>")
+
+# Add a 'cluster_label' field to store cluster/group ID
+class Embedding(Base):
+    __tablename__ = 'embeddings'
+
+    embedding_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    segment_id = Column(Integer, ForeignKey('segments.segment_id', ondelete='CASCADE'), nullable=False)  # Reference to Segment model
+    vector = Column(LargeBinary, nullable=False)  # Embedding vector stored as binary data
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))  # Timestamp of embedding creation
+
+    # Relationships
+    segment = relationship("Segment", back_populates="embeddings")  # Each embedding belongs to one segment
+
+    def __repr__(self):
+        return (f"<Embedding(id={self.embedding_id}, segment_id={self.segment_id}, "
                 f"created_at={self.created_at})>")
