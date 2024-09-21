@@ -4,8 +4,9 @@ from sqlalchemy.orm import Session
 from .utils import create_directory_if_not_exists, split_audio_file, get_key, extract_video_urls_from_playlist
 from .download_audio import download_youtube_audio
 from .database import SessionLocal  # Import the session to interact with the database
-from .database.models import Project, URL, AudioFile, Segment  # Import models
+from .database.models import Project, URL, AudioFile, Segment, Embedding  # Import models
 from pytubefix import YouTube
+from .embedder import store_embedding_and_timestamp
 
 def yyt(project_name):
     """
@@ -178,7 +179,7 @@ def download_audio(project_name):
         download_youtube_audio(url_id)
 
 
-def segment_audio(project_name, segment_length_ms=10 * 60 * 1000):
+def segment_audio(project_name, segment_length_ms=5 * 60 * 1000):
     """
     Splits audio files associated with a project into segments.
 
@@ -212,3 +213,33 @@ def segment_audio(project_name, segment_length_ms=10 * 60 * 1000):
 
         # Call the split_audio_file function to create segments
         split_audio_file(audio_file_id, segment_length_ms)
+
+
+def embedd_audio(project_name):
+    session = SessionLocal()
+    
+    # Retrieve the project by name
+    project = session.query(Project).filter_by(project_name=project_name).first()
+    audio_files = project.audio_files  # Fetch associated audio files
+
+    if not project:
+        print(f"Project '{project_name}' does not exist in the database.")
+        return
+
+    if not audio_files:
+        print(f"No Audio Files found for project '{project_name}'. Please add Audio Files first.")
+        return
+    
+    # Segment each audio file in the project
+    for audio_file in audio_files:
+        segment_files = audio_file.segments
+        for segment_file in segment_files:
+            segment_id = segment_file.segment_id
+            segment_file_path = segment_file.file_path
+            segment_embeddings = session.query(Embedding).filter_by(segment_id=segment_id).first()
+
+            if segment_embeddings:
+                print(f"Audio segments already exist for '{segment_file_path}'")
+                continue
+
+            store_embedding_and_timestamp(segment_id)
