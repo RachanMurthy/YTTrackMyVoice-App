@@ -41,7 +41,7 @@ def extract_video_urls_from_playlist(playlist_url):
         list: A list of video URLs from the playlist.
     """
     try:
-        # Create a Playlist object
+        # Create a Playlist object using pytubefix
         playlist = Playlist(playlist_url)
 
         # Extract all video URLs from the playlist
@@ -50,15 +50,25 @@ def extract_video_urls_from_playlist(playlist_url):
         return video_urls
     
     except Exception as e:
+        # Handle any error that occurs during the playlist extraction
         print(f"An error occurred: {e}")
         return []
 
 
 def get_key(secret_key):
-    # Load the .env file
+    """
+    Fetches a secret key from the environment variables using dotenv.
+
+    Args:
+        secret_key (str): The name of the environment variable.
+
+    Returns:
+        str: The value of the requested secret key, or None if not found.
+    """
+    # Load the .env file to access environment variables
     load_dotenv()
 
-    # Access the variables
+    # Access and return the secret key
     key = os.getenv(secret_key)
 
     return key
@@ -79,61 +89,67 @@ def export_segment(input_file, start_ms, end_ms, output_file, format="wav"):
     - None
     """
     try:
+        # Load the input audio file using pydub
         audio = AudioSegment.from_file(input_file)
+        # Extract the segment from start_ms to end_ms
         segment = audio[start_ms:end_ms]
+        # Export the segment to the specified file and format
         segment.export(output_file, format=format)
         print(f"Exported segment to {output_file} from {start_ms / 1000}s to {end_ms / 1000}s")
     except Exception as e:
+        # Handle any error that occurs during the export process
         print(f"Error exporting segment: {e}")
 
 
 def split_audio_file(audio_id, segment_length_ms, format="wav"):
     """
-    Split an audio file into fixed-length segments and return segment details.
+    Split an audio file into fixed-length segments and store the segment details in the database.
 
     Parameters:
-    - input_file (str): Path to the input audio file.
-    - output_dir (str): Directory where the output segments will be saved.
+    - audio_id (int): The ID of the audio file in the database.
     - segment_length_ms (int): Length of each segment in milliseconds (default is 10 minutes).
-    - format (str): Audio format for the output files (default is "wav").
+    - format (str): Audio format for the output segments (default is "wav").
 
     Returns:
-    - List[dict]: A list of dictionaries containing segment details.
+    - Segment: The last segment created (or None if an error occurred).
     """
+    # Open a new database session
     session = SessionLocal()
-    audio_record = session.query(AudioFile).filter_by(audio_id=audio_id).first()
+    audio_record = session.query(AudioFile).filter_by(audio_id=audio_id).first()  # Fetch the audio file record from the database
 
     try:
-        
+        # Retrieve the audio file path and folder path from the audio record
         audio_file_path = audio_record.audio_path
         audio_folder_path = audio_record.audio_folder_path
 
-        # Create a subdirectory for segments
+        # Create a subdirectory to store the split segments
         segments_dir = os.path.join(audio_folder_path, "segments")
         create_directory_if_not_exists(segments_dir)
 
-        # Load the audio file
+        # Load the audio file using pydub
         audio = AudioSegment.from_file(audio_file_path)
-        total_length_ms = len(audio)
+        total_length_ms = len(audio)  # Get the total length of the audio file in milliseconds
 
-        # Calculate the number of segments
+        # Calculate the number of segments needed
         num_segments = ceil(total_length_ms / segment_length_ms)
+
         try:
-            # Split and export segments
+            # Loop over the number of segments and export each one
             for i in range(num_segments):
                 start_ms = i * segment_length_ms
                 end_ms = min((i + 1) * segment_length_ms, total_length_ms)
                 segment = audio[start_ms:end_ms]
+                
+                # Generate the file name for the segment and export it
                 segment_file_name = f"segment_{i + 1}.{format}"
                 segment_file_path = os.path.join(segments_dir, segment_file_name)
                 segment.export(segment_file_path, format=format)
                 print(f"Exported: {segment_file_path}")
 
-                # Calculate duration
-                duration_seconds = (end_ms - start_ms) / 1000  # Convert ms to seconds
+                # Calculate the duration of the segment in seconds
+                duration_seconds = (end_ms - start_ms) / 1000
 
-                
-                # Create a new Segment instance
+                # Create a new Segment object and store it in the database
                 new_segment = Segment(
                         audio_id=audio_record.audio_id,
                         start_time=start_ms,
@@ -142,16 +158,20 @@ def split_audio_file(audio_id, segment_length_ms, format="wav"):
                         file_path=segment_file_path
                 )
                 session.add(new_segment)
-                session.commit()
+                session.commit()  # Commit the segment to the database
+
         except Exception as e:
+            # Rollback the transaction in case of an error
             session.rollback()
-            print(f"An error occurred while starting the project: {e}")
+            print(f"An error occurred while splitting the audio file: {e}")
         finally:
+            # Close the session once finished
             session.close()
 
         print(f"Audio file '{audio_file_path}' has been split into {num_segments} segments.")
-        return new_segment
+        return new_segment  # Return the last segment created
 
     except Exception as e:
+        # Handle any error that occurs during the process
         print(f"Error splitting audio file: {e}")
         return None
