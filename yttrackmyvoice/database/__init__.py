@@ -3,7 +3,7 @@ from sqlalchemy.orm import sessionmaker
 from .models import Base  # Import your Base class
 
 # Create engine for SQLite database
-engine = create_engine('sqlite:///example.db', echo=True)
+engine = create_engine('sqlite:///example.db', echo=False)
 
 # Create all tables automatically when the package is imported
 Base.metadata.create_all(engine)

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, DECIMAL, LargeBinary
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, DECIMAL, LargeBinary, Float
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
@@ -104,7 +104,6 @@ class Segment(Base):
                 f"duration={self.duration}, file_path='{self.file_path}', "
                 f"created_at={self.created_at})>")
 
-# Add a 'cluster_label' field to store cluster/group ID
 class Embedding(Base):
     __tablename__ = 'embeddings'
 
@@ -115,7 +114,26 @@ class Embedding(Base):
 
     # Relationships
     segment = relationship("Segment", back_populates="embeddings")  # Each embedding belongs to one segment
+    timestamps = relationship("EmbeddingTimestamp", back_populates="embedding", cascade="all, delete-orphan")
 
     def __repr__(self):
         return (f"<Embedding(id={self.embedding_id}, segment_id={self.segment_id}, "
+                f"created_at={self.created_at})>")
+    
+
+class EmbeddingTimestamp(Base):
+    __tablename__ = 'embedding_timestamps'
+
+    timestamp_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    embedding_id = Column(Integer, ForeignKey('embeddings.embedding_id', ondelete='CASCADE'), nullable=False)
+    start_time = Column(Float, nullable=False)  # Start time in seconds
+    end_time = Column(Float, nullable=False)    # End time in seconds
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    # Relationships
+    embedding = relationship("Embedding", back_populates="timestamps")
+
+    def __repr__(self):
+        return (f"<EmbeddingTimestamp(id={self.timestamp_id}, embedding_id={self.embedding_id}, "
+                f"start_time={self.start_time}, end_time={self.end_time}, "
                 f"created_at={self.created_at})>")
