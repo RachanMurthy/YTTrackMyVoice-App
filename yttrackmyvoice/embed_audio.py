@@ -1,8 +1,6 @@
 import os
 import numpy as np
-import pandas as pd
 from datetime import datetime, timezone
-from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 
 from pyannote.audio import Pipeline
@@ -182,71 +180,5 @@ class Embedder:
         except Exception as e:
             print(f"An unexpected error occurred: {e}")
             return []
-        finally:
-            session.close()
-
-    def retrieve_embeddings_df(self, segment_id):
-        """
-        Retrieves all embeddings and their corresponding timestamps for a given segment_id
-        and returns them as a pandas DataFrame.
-
-        Parameters:
-        - segment_id (int): The ID of the segment to retrieve embeddings for.
-
-        Returns:
-        - pd.DataFrame: A DataFrame containing embeddings and their timestamps.
-        """
-        session = SessionLocal()
-        try:
-            print(f"Retrieving embeddings for Segment ID: {segment_id}")
-
-            # 1. Retrieve the Segment from the database
-            segment = session.query(Segment).filter_by(segment_id=segment_id).first()
-            if not segment:
-                print(f"Segment with ID {segment_id} not found.")
-                return pd.DataFrame()
-
-            # 2. Retrieve all Embeddings associated with the segment
-            embeddings = session.query(Embedding).filter_by(segment_id=segment_id).all()
-            if not embeddings:
-                print(f"No embeddings found for Segment ID {segment_id}.")
-                return pd.DataFrame()
-
-            # 3. Prepare lists to hold data for the DataFrame
-            data = []
-
-            for embedding in embeddings:
-                print(f"\nProcessing Embedding ID: {embedding.embedding_id}")
-
-                # 3.1. Convert the binary vector back to a NumPy array
-                embedding_vector = np.frombuffer(embedding.vector, dtype=np.float32)
-                print(f"Embedding vector shape: {embedding_vector.shape}")
-
-                # 3.2. Retrieve associated timestamps
-                timestamps = session.query(EmbeddingTimestamp).filter_by(embedding_id=embedding.embedding_id).all()
-
-                for ts in timestamps:
-                    data.append({
-                        'embedding_id': embedding.embedding_id,
-                        'segment_id': segment_id,
-                        'vector': embedding_vector,
-                        'start_time': ts.start_time,
-                        'end_time': ts.end_time,
-                        'embedding_created_at': embedding.created_at,
-                        'timestamp_created_at': ts.created_at
-                    })
-                    print(f" - Timestamp: {ts.start_time:.1f}s to {ts.end_time:.1f}s")
-
-            # 4. Create a pandas DataFrame from the data
-            df = pd.DataFrame(data)
-            print(f"\nTotal embeddings retrieved: {len(df)}")
-            return df
-
-        except SQLAlchemyError as e:
-            print(f"Database error occurred: {e}")
-            return pd.DataFrame()
-        except Exception as e:
-            print(f"An unexpected error occurred: {e}")
-            return pd.DataFrame()
         finally:
             session.close()
