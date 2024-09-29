@@ -7,7 +7,7 @@ if __name__ == "__main__":
     # You no longer need to call create_or_get_project()
 
     # Add URLs to the project
-    manager.add_urls(["https://www.youtube.com/watch?v=OXLD2KWbdbA"])
+    manager.add_urls(["https://www.youtube.com/watch?v=u_2H_9pyiEY"])
 
     # # Add playlists to the project
     # manager.add_playlists(["https://www.youtube.com/playlist?list=example"])

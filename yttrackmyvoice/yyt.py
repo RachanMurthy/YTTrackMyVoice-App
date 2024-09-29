@@ -2,7 +2,6 @@ import os
 from sqlalchemy.exc import SQLAlchemyError
 from .utils import (
     create_directory_if_not_exists,
-    split_audio_file,
     get_key,
     extract_video_urls_from_playlist
 )
@@ -12,7 +11,7 @@ from pytubefix import YouTube
 from .embedder import store_embedding_and_timestamp
 import numpy as np
 from .download_audio import Downloader  # Import the Downloader class
-
+from .segment_audio import Segmenter
 
 class Yyt:
     def __init__(self, project_name):
@@ -178,6 +177,8 @@ class Yyt:
                 print(f"No audio files found for project '{self.project_name}'. Please add audio files first.")
                 return
 
+            segmenter = Segmenter()  # Create an instance of the Segmenter class
+
             for audio_file in audio_files:
                 audio_file_id = audio_file.audio_id
                 audio_file_path = audio_file.audio_path
@@ -187,7 +188,7 @@ class Yyt:
                     print(f"Audio segments already exist for '{audio_file_path}'")
                     continue
 
-                split_audio_file(audio_file_id, segment_length_ms)
+                segmenter.split_audio_file(audio_file_id, segment_length_ms)
         finally:
             session.close()
 
