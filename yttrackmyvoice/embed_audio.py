@@ -64,7 +64,7 @@ class Embedder:
             # 5. Iterate through each speaker and store their embedding and timestamps
             for idx, speaker in enumerate(speakers):
                 print(f"\nSpeaker {speaker}'s embedding:\n{embeddings[idx]}\n")
-                embedding_vector = embeddings[idx].numpy()  # Convert to NumPy array if necessary
+                embedding_vector = embeddings[idx]
 
                 # Convert the embedding vector to bytes for storage
                 embedding_bytes = embedding_vector.tobytes()

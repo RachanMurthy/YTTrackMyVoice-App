@@ -8,10 +8,10 @@ from .utils import (
 from .database import SessionLocal
 from .database.models import Project, URL, AudioFile, Segment, Embedding, EmbeddingTimestamp
 from pytubefix import YouTube
-from .embedder import store_embedding_and_timestamp
 import numpy as np
 from .download_audio import Downloader  # Import the Downloader class
 from .segment_audio import Segmenter
+from .embed_audio import Embedder  
 
 class Yyt:
     def __init__(self, project_name):
@@ -208,6 +208,8 @@ class Yyt:
                 print(f"No audio files found for project '{self.project_name}'. Please add audio files first.")
                 return
 
+            embedder = Embedder()  # Create an instance of the Embedder class
+
             for audio_file in audio_files:
                 segment_files = session.query(Segment).filter_by(audio_id=audio_file.audio_id).all()
                 for segment_file in segment_files:
@@ -219,7 +221,7 @@ class Yyt:
                         print(f"Embeddings already exist for '{segment_file_path}'")
                         continue
 
-                    store_embedding_and_timestamp(segment_id)
+                    embedder.store_embedding_and_timestamp(segment_id)
         finally:
             session.close()
 
