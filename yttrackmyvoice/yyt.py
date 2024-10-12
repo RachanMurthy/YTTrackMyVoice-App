@@ -12,6 +12,7 @@ import numpy as np
 from .download_audio import Downloader  # Import the Downloader class
 from .segment_audio import Segmenter
 from .embed_audio import Embedder  
+from .label_embeddings import EmbeddingLabeler
 
 class Yyt:
     def __init__(self, project_name):
@@ -287,3 +288,13 @@ class Yyt:
             return [], []
         finally:
             session.close()
+
+    def cluster_and_label_embeddings(self, distance_threshold=5):
+        """
+        Clusters and labels embeddings for the project.
+
+        Parameters:
+        - distance_threshold: The distance threshold for clustering (default is 5).
+        """
+        labeler = EmbeddingLabeler(distance_threshold=distance_threshold)
+        labeler.cluster_and_label_embeddings()

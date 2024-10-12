@@ -1,4 +1,4 @@
-from yttrackmyvoice import Yyt, EmbeddingLabeler
+from yttrackmyvoice import Yyt
 
 if __name__ == "__main__":
     # # Initialize the Yyt class with your project name
@@ -21,6 +21,5 @@ if __name__ == "__main__":
 
     # print(embeddings, labels)
 
-    # Initialize the EmbeddingLabeler and perform clustering and labeling
-    labeler = EmbeddingLabeler(distance_threshold=5)
-    labeler.cluster_and_label_embeddings()
+    # Perform clustering and labeling using the Yyt instance
+    manager.cluster_and_label_embeddings()
