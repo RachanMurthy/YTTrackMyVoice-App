@@ -39,7 +39,6 @@ class URL(Base):
     title = Column(String(255), nullable=True)  # Title of the video/URL
     author = Column(String(255), nullable=True)  # Author or channel name of the video
     views = Column(Integer, nullable=True)  # Number of views for the video
-    description = Column(Text, nullable=True)  # Description of the video
 
 
     # One-to-many relationship with the AudioFile table and the Project table
@@ -120,7 +119,6 @@ class Embedding(Base):
         return (f"<Embedding(id={self.embedding_id}, segment_id={self.segment_id}, "
                 f"created_at={self.created_at})>")
     
-
 class EmbeddingTimestamp(Base):
     __tablename__ = 'embedding_timestamps'
 
