@@ -107,8 +107,7 @@ class Yyt:
                     url=url,
                     title=yt.title,
                     author=yt.author,
-                    views=yt.views,
-                    description=yt.description
+                    views=yt.views
                 )
                 session.add(new_url)
                 print(f"Added new URL: {url}")
@@ -226,9 +225,13 @@ class Yyt:
             session.close()
 
     @staticmethod
-    def retrieve_all_embeddings():
+    def retrieve_all_embeddings(segment_ids=None):
         """
         Retrieves all embeddings and their corresponding timestamps from the database.
+        If segment_ids is provided, retrieves embeddings only for those segments.
+
+        Args:
+        - segment_ids (List[int], optional): A list of segment IDs to retrieve embeddings for.
 
         Returns:
         - embeddings_list (List[np.ndarray]): A list of embedding vectors.
@@ -236,9 +239,13 @@ class Yyt:
         """
         session = SessionLocal()
         try:
-            print("Retrieving all embeddings from the database.")
+            print("Retrieving embeddings from the database.")
 
-            embeddings = session.query(Embedding).all()
+            query = session.query(Embedding)
+            if segment_ids:
+                query = query.filter(Embedding.segment_id.in_(segment_ids))
+            
+            embeddings = query.all()
             if not embeddings:
                 print("No embeddings found in the database.")
                 return [], []
