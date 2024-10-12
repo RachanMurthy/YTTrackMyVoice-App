@@ -24,3 +24,6 @@ docs/Todo.txt
 
 #.db file
 example.db
+
+# Export Embeddings
+export_embeddings.py
