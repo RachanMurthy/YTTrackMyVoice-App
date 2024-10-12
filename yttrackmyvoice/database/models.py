@@ -114,6 +114,7 @@ class Embedding(Base):
     # Relationships
     segment = relationship("Segment", back_populates="embeddings")  # Each embedding belongs to one segment
     timestamps = relationship("EmbeddingTimestamp", back_populates="embedding", cascade="all, delete-orphan")
+    labels = relationship("EmbeddingLabel", back_populates="embedding", cascade="all, delete-orphan")
 
     def __repr__(self):
         return (f"<Embedding(id={self.embedding_id}, segment_id={self.segment_id}, "
@@ -135,3 +136,28 @@ class EmbeddingTimestamp(Base):
         return (f"<EmbeddingTimestamp(id={self.timestamp_id}, embedding_id={self.embedding_id}, "
                 f"start_time={self.start_time}, end_time={self.end_time}, "
                 f"created_at={self.created_at})>")
+
+class EmbeddingLabel(Base):
+    __tablename__ = 'embedding_labels'
+
+    embedding_id = Column(Integer, ForeignKey('embeddings.embedding_id', ondelete='CASCADE'), primary_key=True)
+    label_id = Column(Integer, ForeignKey('label_names.label_id', ondelete='CASCADE'), primary_key=True)
+
+    # Relationships
+    embedding = relationship("Embedding", back_populates="labels")
+    label = relationship("LabelName", back_populates="embeddings")
+
+    def __repr__(self):
+        return f"<EmbeddingLabel(embedding_id={self.embedding_id}, label_id={self.label_id})>"
+
+class LabelName(Base):
+    __tablename__ = 'label_names'
+
+    label_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    label_name = Column(String(255), nullable=False, unique=True)
+
+    # Relationships
+    embeddings = relationship("EmbeddingLabel", back_populates="label")
+
+    def __repr__(self):
+        return f"<LabelName(id={self.label_id}, name='{self.label_name}')>"
