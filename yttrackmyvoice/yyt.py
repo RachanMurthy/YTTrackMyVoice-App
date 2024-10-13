@@ -6,10 +6,10 @@ from .utils import (
     extract_video_urls_from_playlist
 )
 from .database import SessionLocal
-from .database.models import Project, URL, AudioFile, Segment, Embedding, EmbeddingTimestamp
+from .database.models import Project, URL, AudioFile, Segment, Embedding, EmbeddingTimestamp, LabelName, EmbeddingLabel
 from pytubefix import YouTube
 import numpy as np
-from .download_audio import Downloader  # Import the Downloader class
+from .download_audio import Downloader
 from .segment_audio import Segmenter
 from .embed_audio import Embedder  
 from .label_embeddings import EmbeddingLabeler
@@ -298,3 +298,176 @@ class Yyt:
         """
         labeler = EmbeddingLabeler(distance_threshold=distance_threshold)
         labeler.cluster_and_label_embeddings()
+
+    def list_labels(self):
+        """
+        Lists all existing labels along with the number of embeddings associated with each label.
+        """
+        session = SessionLocal()
+        try:
+            labels = session.query(LabelName).all()
+            if not labels:
+                print("No labels found in the database.")
+                return
+
+            print("Existing Labels:")
+            for label in labels:
+                count = session.query(EmbeddingLabel).filter_by(label_id=label.label_id).count()
+                print(f"- {label.label_name} (Total Embeddings: {count})")
+        except SQLAlchemyError as e:
+            print(f"Database error occurred while listing labels: {e}")
+        finally:
+            session.close()
+
+    def get_label_speakers_timestamps(self, label_name):
+        """
+        Retrieves the timestamps where the specified label's speaker spoke.
+
+        Parameters:
+        - label_name (str): The name of the label.
+
+        Returns:
+        - List of timestamp dictionaries.
+        """
+        session = SessionLocal()
+        try:
+            label = session.query(LabelName).filter_by(label_name=label_name).first()
+            if not label:
+                print(f"Label '{label_name}' does not exist.")
+                return []
+
+            embedding_labels = session.query(EmbeddingLabel).filter_by(label_id=label.label_id).all()
+            timestamps = []
+            for embedding_label in embedding_labels:
+                embedding = session.query(Embedding).filter_by(embedding_id=embedding_label.embedding_id).first()
+                if embedding:
+                    segment = session.query(Segment).filter_by(segment_id=embedding.segment_id).first()
+                    if segment:
+                        timestamps.append({
+                            'audio_id': segment.audio_id,
+                            'file_path': segment.file_path,
+                            'start_time': segment.start_time,
+                            'end_time': segment.end_time
+                        })
+            return timestamps
+        except SQLAlchemyError as e:
+            print(f"Database error occurred while retrieving timestamps: {e}")
+            return []
+        finally:
+            session.close()
+
+    def update_label_name(self, old_label_name, new_label_name):
+        """
+        Updates the name of a label after verifying its existence.
+
+        Parameters:
+        - old_label_name (str): The current name of the label.
+        - new_label_name (str): The new name for the label.
+        """
+        session = SessionLocal()
+        try:
+            # Check if the old label exists
+            label = session.query(LabelName).filter_by(label_name=old_label_name).first()
+            if not label:
+                print(f"Label '{old_label_name}' does not exist.")
+                return
+
+            # Check if the new label name already exists
+            existing_label = session.query(LabelName).filter_by(label_name=new_label_name).first()
+            if existing_label:
+                print(f"Label name '{new_label_name}' is already in use.")
+                return
+
+            # Update the label name
+            label.label_name = new_label_name
+            session.commit()
+            print(f"Label name updated from '{old_label_name}' to '{new_label_name}'.")
+        except SQLAlchemyError as e:
+            session.rollback()
+            print(f"Database error occurred while updating label name: {e}")
+        finally:
+            session.close()
+
+    def get_label_info(self, label_name):
+        """
+        Retrieves detailed information for a specific label, including title from URL, audio ID, segment ID,
+        start time, and end time.
+
+        Parameters:
+        - label_name (str): The name of the label to retrieve information for.
+
+        Returns:
+        - None
+        """
+        session = SessionLocal()
+        try:
+            # Retrieve the specified label
+            label = session.query(LabelName).filter_by(label_name=label_name).first()
+            if not label:
+                print(f"Label '{label_name}' does not exist.")
+                return
+
+            print(f"\nRetrieving information for Label: {label.label_name}\n")
+
+            # Fetch all EmbeddingLabels associated with the label
+            embedding_labels = session.query(EmbeddingLabel).filter_by(label_id=label.label_id).all()
+
+            # Collect detailed information
+            detailed_info = []
+            for embedding_label in embedding_labels:
+                embedding = embedding_label.embedding
+                for ts in embedding.timestamps:
+                    segment = embedding.segment
+                    if not segment:
+                        continue  # Skip if segment is not found
+
+                    # Retrieve the title from the associated URL via AudioFile
+                    title = self.get_url_title(segment.audio_id, session)
+
+                    detailed_info.append({
+                        'title': title,
+                        'audio_id': segment.audio_id,
+                        'segment_id': segment.segment_id,
+                        'start_time': ts.start_time,
+                        'end_time': ts.end_time
+                    })
+
+            if not detailed_info:
+                print(f"No timestamps found for label '{label.label_name}'.")
+                return
+
+            # Display the collected detailed information
+            for info in detailed_info:
+                print(f"Title: {info['title']}")
+                print(f"Audio ID: {info['audio_id']}")
+                print(f"Segment ID: {info['segment_id']}")
+                print(f"Start Time: {info['start_time']:.2f}s")
+                print(f"End Time: {info['end_time']:.2f}s")
+                print("-" * 60)
+
+        except SQLAlchemyError as e:
+            print(f"Database error occurred while retrieving label info: {e}")
+        finally:
+            session.close()
+
+    def get_url_title(self, audio_id, session):
+        """
+        Retrieves the title from the associated URL for a given audio ID.
+
+        Parameters:
+        - audio_id (int): The ID of the audio.
+        - session (Session): The active database session.
+
+        Returns:
+        - title (str): The title from the associated URL.
+        """
+        try:
+            # Retrieve the AudioFile associated with the audio_id
+            audio_file = session.query(AudioFile).filter_by(audio_id=audio_id).first()
+            if audio_file and audio_file.url and hasattr(audio_file.url, 'title'):
+                return audio_file.url.title
+            else:
+                return "Unknown Title"
+        except SQLAlchemyError as e:
+            print(f"Database error occurred while retrieving URL title: {e}")
+            return "Unknown Title"
