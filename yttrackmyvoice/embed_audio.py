@@ -78,21 +78,36 @@ class Embedder:
 
                 print(f"Created Embedding with ID: {new_embedding.embedding_id}")
 
+                # Initialize a flag to check if at least one valid timestamp is added
+                valid_timestamp_added = False
+
                 # Iterate through the speech segments of this speaker
                 for segment_obj, track, spkr in diarization.itertracks(yield_label=True):
                     if spkr == speaker:
                         segment_start = segment_obj.start
                         segment_end = segment_obj.end
-                        print(f"Speaker {speaker} speaks from {segment_start:.1f}s to {segment_end:.1f}s")
+                        duration = segment_end - segment_start
 
-                        # Create a new EmbeddingTimestamp instance
-                        new_timestamp = EmbeddingTimestamp(
-                            embedding_id=new_embedding.embedding_id,
-                            start_time=segment_start,
-                            end_time=segment_end,
-                            created_at=datetime.now(timezone.utc)
-                        )
-                        session.add(new_timestamp)
+                        # Check if the duration is at least 1 second
+                        if duration >= 1.0:
+                            print(f"Speaker {speaker} speaks from {segment_start:.1f}s to {segment_end:.1f}s (Duration: {duration:.2f}s)")
+
+                            # Create a new EmbeddingTimestamp instance
+                            new_timestamp = EmbeddingTimestamp(
+                                embedding_id=new_embedding.embedding_id,
+                                start_time=segment_start,
+                                end_time=segment_end,
+                                created_at=datetime.now(timezone.utc)
+                            )
+                            session.add(new_timestamp)
+                            valid_timestamp_added = True
+                        else:
+                            print(f"Skipped short timestamp: {segment_start:.1f}s to {segment_end:.1f}s (Duration: {duration:.2f}s)")
+
+                if not valid_timestamp_added:
+                    # If no valid timestamps were added, remove the embedding
+                    session.delete(new_embedding)
+                    print(f"No valid timestamps for Embedding ID {new_embedding.embedding_id}. Embedding deleted.")
 
             # 6. Commit all changes
             try:
@@ -100,13 +115,17 @@ class Embedder:
                 print(f"Successfully stored embeddings and timestamps for segment_id {segment_id}.")
             except SQLAlchemyError as e:
                 session.rollback()
-                print(f"Database error occurred: {e}")
+                print(f"Database error occurred during commit: {e}")
             except Exception as e:
                 session.rollback()
-                print(f"An unexpected error occurred: {e}")
+                print(f"An unexpected error occurred during commit: {e}")
+            finally:
+                session.close()
 
+        except SQLAlchemyError as e:
+            print(f"Database error occurred: {e}")
         except Exception as e:
-            print(f"An error occurred while processing segment {segment_id}: {e}")
+            print(f"An unexpected error occurred: {e}")
         finally:
             session.close()
 
