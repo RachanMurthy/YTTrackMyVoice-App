@@ -1,5 +1,7 @@
 from pytubefix import Playlist
 from dotenv import load_dotenv
+from .database.models import AudioFile
+from sqlalchemy.exc import SQLAlchemyError
 import os
 
 def create_directory_if_not_exists(directory_path):
@@ -67,3 +69,27 @@ def get_key(secret_key):
     key = os.getenv(secret_key)
 
     return key
+
+
+
+def get_url_title(audio_id, session):
+    """
+    Retrieves the title from the associated URL for a given audio ID.
+
+    Parameters:
+    - audio_id (int): The ID of the audio.
+    - session (Session): The active database session.
+
+    Returns:
+    - title (str): The title from the associated URL.
+    """
+    try:
+        # Retrieve the AudioFile associated with the audio_id
+        audio_file = session.query(AudioFile).filter_by(audio_id=audio_id).first()
+        if audio_file and audio_file.url and hasattr(audio_file.url, 'title'):
+            return audio_file.url.title
+        else:
+            return "Unknown Title"
+    except SQLAlchemyError as e:
+        print(f"Database error occurred while retrieving URL title: {e}")
+        return "Unknown Title"
