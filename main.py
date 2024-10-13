@@ -1,8 +1,8 @@
 from yttrackmyvoice import Yyt
 
 if __name__ == "__main__":
-    # # Initialize the Yyt class with your project name
-    # manager = Yyt("My Project")  # This will create or retrieve the project
+    # Initialize the Yyt class with your project name
+    manager = Yyt("My Project")  # This will create or retrieve the project
 
     # # Add URLs to the project
     # manager.add_urls(["https://www.youtube.com/watch?v=u_2H_9pyiEY"])
@@ -21,5 +21,14 @@ if __name__ == "__main__":
 
     # print(embeddings, labels)
 
-    # Perform clustering and labeling using the Yyt instance
-    manager.cluster_and_label_embeddings()
+    # # Perform clustering and labeling using the Yyt instance
+    # manager.cluster_and_label_embeddings()
+
+    # # List all existing labels
+    # manager.list_labels()
+
+     # Specify the label name you want to retrieve information for
+    target_label = "Speaker 19"  # Replace with your desired label name
+
+    # Retrieve and display detailed information for the specified label
+    manager.get_label_info(target_label)
