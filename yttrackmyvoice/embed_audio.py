@@ -18,13 +18,14 @@ class Embedder:
             use_auth_token=get_key('SECRET_KEY_PYANNOTE')
         )
 
-    def store_embedding_and_timestamp(self, segment_id):
+    def store_embedding_and_timestamp(self, segment_id, min_duration=1.0):
         """
         Processes a given audio segment to extract its embedding and timestamp,
         then stores them in the Embedding and EmbeddingTimestamp models.
 
         Parameters:
         - segment_id (int): The ID of the segment to process.
+        - min_duration (float): Minimum duration in seconds for a valid timestamp. Default is 1.0 second.
 
         Returns:
         - None
@@ -88,8 +89,8 @@ class Embedder:
                         segment_end = segment_obj.end
                         duration = segment_end - segment_start
 
-                        # Check if the duration is at least 1 second
-                        if duration >= 1.0:
+                        # Check if the duration is at least the minimum duration
+                        if duration >= min_duration:
                             print(f"Speaker {speaker} speaks from {segment_start:.1f}s to {segment_end:.1f}s (Duration: {duration:.2f}s)")
 
                             # Create a new EmbeddingTimestamp instance
