@@ -3,7 +3,8 @@ from sqlalchemy.exc import SQLAlchemyError
 from .utils import (
     create_directory_if_not_exists,
     get_key,
-    extract_video_urls_from_playlist
+    extract_video_urls_from_playlist,
+    get_url_title
 )
 from .database import SessionLocal
 from .database.models import Project, URL, AudioFile, Segment, Embedding, EmbeddingTimestamp, LabelName, EmbeddingLabel
@@ -319,43 +320,6 @@ class Yyt:
         finally:
             session.close()
 
-    def get_label_speakers_timestamps(self, label_name):
-        """
-        Retrieves the timestamps where the specified label's speaker spoke.
-
-        Parameters:
-        - label_name (str): The name of the label.
-
-        Returns:
-        - List of timestamp dictionaries.
-        """
-        session = SessionLocal()
-        try:
-            label = session.query(LabelName).filter_by(label_name=label_name).first()
-            if not label:
-                print(f"Label '{label_name}' does not exist.")
-                return []
-
-            embedding_labels = session.query(EmbeddingLabel).filter_by(label_id=label.label_id).all()
-            timestamps = []
-            for embedding_label in embedding_labels:
-                embedding = session.query(Embedding).filter_by(embedding_id=embedding_label.embedding_id).first()
-                if embedding:
-                    segment = session.query(Segment).filter_by(segment_id=embedding.segment_id).first()
-                    if segment:
-                        timestamps.append({
-                            'audio_id': segment.audio_id,
-                            'file_path': segment.file_path,
-                            'start_time': segment.start_time,
-                            'end_time': segment.end_time
-                        })
-            return timestamps
-        except SQLAlchemyError as e:
-            print(f"Database error occurred while retrieving timestamps: {e}")
-            return []
-        finally:
-            session.close()
-
     def update_label_name(self, old_label_name, new_label_name):
         """
         Updates the name of a label after verifying its existence.
@@ -422,7 +386,7 @@ class Yyt:
                         continue  # Skip if segment is not found
 
                     # Retrieve the title from the associated URL via AudioFile
-                    title = self.get_url_title(segment.audio_id, session)
+                    title = get_url_title(segment.audio_id, session)
 
                     detailed_info.append({
                         'title': title,
@@ -449,25 +413,3 @@ class Yyt:
             print(f"Database error occurred while retrieving label info: {e}")
         finally:
             session.close()
-
-    def get_url_title(self, audio_id, session):
-        """
-        Retrieves the title from the associated URL for a given audio ID.
-
-        Parameters:
-        - audio_id (int): The ID of the audio.
-        - session (Session): The active database session.
-
-        Returns:
-        - title (str): The title from the associated URL.
-        """
-        try:
-            # Retrieve the AudioFile associated with the audio_id
-            audio_file = session.query(AudioFile).filter_by(audio_id=audio_id).first()
-            if audio_file and audio_file.url and hasattr(audio_file.url, 'title'):
-                return audio_file.url.title
-            else:
-                return "Unknown Title"
-        except SQLAlchemyError as e:
-            print(f"Database error occurred while retrieving URL title: {e}")
-            return "Unknown Title"
