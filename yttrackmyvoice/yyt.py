@@ -413,3 +413,72 @@ class Yyt:
             print(f"Database error occurred while retrieving label info: {e}")
         finally:
             session.close()
+
+    def retrieve_embeddings_for_audio_files(self, audio_file_ids):
+        """
+        Retrieves embeddings associated with the specified audio file IDs.
+
+        Args:
+        - audio_file_ids (List[int]): A list of audio file IDs.
+
+        Returns:
+        - embeddings_list (List[np.ndarray]): A list of embedding vectors.
+        - labels_list (List[Dict]): A list of dictionaries containing metadata.
+        """
+        session = SessionLocal()
+        try:
+            print("Retrieving embeddings for specified audio files from the database.")
+
+            # Retrieve segments associated with the specified audio files
+            segments = session.query(Segment).filter(Segment.audio_id.in_(audio_file_ids)).all()
+
+            if not segments:
+                print("No segments found for the specified audio files.")
+                return [], []
+
+            segment_ids = [segment.segment_id for segment in segments]
+
+            # Now retrieve embeddings for these segments
+            embeddings = session.query(Embedding).filter(Embedding.segment_id.in_(segment_ids)).all()
+
+            if not embeddings:
+                print("No embeddings found for the specified segments.")
+                return [], []
+
+            embeddings_list = []
+            labels_list = []
+
+            for embedding in embeddings:
+                # Deserialize the embedding vector
+                embedding_vector = np.frombuffer(embedding.vector, dtype=np.float32)
+
+                # Retrieve timestamps associated with the embedding
+                timestamps = session.query(EmbeddingTimestamp).filter_by(embedding_id=embedding.embedding_id).all()
+
+                timestamp_list = []
+                for ts in timestamps:
+                    timestamp_info = { 
+                        'start_time': ts.start_time,
+                        'end_time': ts.end_time,
+                        'created_at': ts.created_at
+                    }
+                    timestamp_list.append(timestamp_info)
+
+                embedding_info = {
+                    'embedding_id': embedding.embedding_id,
+                    'segment_id': embedding.segment_id,
+                    'timestamps': timestamp_list,
+                    'created_at': embedding.created_at
+                }
+
+                embeddings_list.append(embedding_vector)
+                labels_list.append(embedding_info)
+
+            print(f"Total embeddings retrieved: {len(embeddings_list)}")
+            return embeddings_list, labels_list
+        except SQLAlchemyError as e:
+            print(f"Database error occurred: {e}")
+            return [], []
+        except Exception as e:
+            print(f"An unexpected error occurred: {e}")
+            return [], []

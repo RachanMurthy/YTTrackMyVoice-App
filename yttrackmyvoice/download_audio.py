@@ -6,6 +6,7 @@ from pydub import AudioSegment
 from .database import SessionLocal
 from .database.models import URL, AudioFile
 from .utils import create_directory_if_not_exists
+import subprocess
 
 
 class Downloader:
@@ -97,9 +98,14 @@ class Downloader:
     @staticmethod
     def convert_webm_to_wav(input_filepath, output_filepath):
         """
-        Converts a .webm audio file to a .wav file.
+        Converts a .webm audio file to a .wav file using ffmpeg to handle large files.
         """
-        audio = AudioSegment.from_file(input_filepath, format="webm")
-        audio.export(output_filepath, format="wav")
-        print(f"Converted {input_filepath} to {output_filepath}")
-        return output_filepath
+        try:
+            # Use ffmpeg to convert the file
+            command = [
+                'ffmpeg', '-i', input_filepath, '-acodec', 'pcm_s16le', '-ar', '44100', output_filepath
+            ]
+            subprocess.run(command, check=True)
+            print(f"Converted {input_filepath} to {output_filepath}")
+        except subprocess.CalledProcessError as e:
+            print(f"An error occurred during conversion: {e}")
