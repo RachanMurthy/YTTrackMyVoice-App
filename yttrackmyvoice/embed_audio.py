@@ -2,6 +2,7 @@ import os
 import numpy as np
 from datetime import datetime, timezone
 from sqlalchemy.exc import SQLAlchemyError
+import torch
 
 from pyannote.audio import Pipeline
 
@@ -12,11 +13,15 @@ from .database import SessionLocal
 
 class Embedder:
     def __init__(self):
+        # Check if CUDA is available and set the device accordingly
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        print(f"Using device: {self.device}")
+
         # Initialize the diarization pipeline once when the Embedder is created
         self.pipeline = Pipeline.from_pretrained(
             'pyannote/speaker-diarization-3.1',
             use_auth_token=get_key('SECRET_KEY_PYANNOTE')
-        )
+        ).to(self.device)
 
     def store_embedding_and_timestamp(self, segment_id, min_duration=1.0):
         """
