@@ -290,7 +290,7 @@ class Yyt:
         finally:
             session.close()
 
-    def cluster_and_label_embeddings(self, distance_threshold=5):
+    def cluster_and_label_embeddings(self, distance_threshold=1):
         """
         Clusters and labels embeddings for the project.
 
@@ -423,7 +423,7 @@ class Yyt:
 
         Returns:
         - embeddings_list (List[np.ndarray]): A list of embedding vectors.
-        - labels_list (List[Dict]): A list of dictionaries containing metadata.
+        - labels_list (List[Dict]): A list of dictionaries containing metadata, including audio_file_id.
         """
         session = SessionLocal()
         try:
@@ -435,6 +435,9 @@ class Yyt:
             if not segments:
                 print("No segments found for the specified audio files.")
                 return [], []
+
+            # Create a mapping from segment_id to audio_file_id for quick lookup
+            segment_id_map = {segment.segment_id: segment.audio_id for segment in segments}
 
             segment_ids = [segment.segment_id for segment in segments]
 
@@ -464,9 +467,13 @@ class Yyt:
                     }
                     timestamp_list.append(timestamp_info)
 
+                # Get the audio_file_id from the segment_id_map
+                audio_file_id = segment_id_map.get(embedding.segment_id, None)
+
                 embedding_info = {
                     'embedding_id': embedding.embedding_id,
                     'segment_id': embedding.segment_id,
+                    'audio_file_id': audio_file_id,
                     'timestamps': timestamp_list,
                     'created_at': embedding.created_at
                 }
@@ -482,3 +489,71 @@ class Yyt:
         except Exception as e:
             print(f"An unexpected error occurred: {e}")
             return [], []
+        finally:
+            session.close()
+
+    def segment_audio_using_embeddings_timestamps(self):
+        """
+        Segments audio files based on the EmbeddingTimestamps table.
+        Each segment is saved with a filename corresponding to its timestamp ID.
+        """
+        session = SessionLocal()
+        try:
+            print("Starting audio segmentation using EmbeddingTimestamps.")
+
+            # Retrieve all EmbeddingTimestamps
+            embedding_timestamps = session.query(EmbeddingTimestamp).all()
+            if not embedding_timestamps:
+                print("No EmbeddingTimestamps found in the database.")
+                return
+
+            segmenter = Segmenter()  # Utilize the existing Segmenter class
+
+            for et in embedding_timestamps:
+                embedding_id = et.embedding_id
+                timestamp_id = et.timestamp_id
+                start_time = et.start_time
+                end_time = et.end_time
+
+                # Retrieve the associated segment to get the audio file path
+                embedding = session.query(Embedding).filter_by(embedding_id=embedding_id).first()
+                if not embedding:
+                    print(f"Embedding with ID {embedding_id} not found.")
+                    continue
+
+                segment = embedding.segment
+                if not segment:
+                    print(f"Segment associated with Embedding ID {embedding_id} not found.")
+                    continue
+
+                audio_file_path = segment.file_path
+                audio_folder_path = segment.audio_file.audio_folder_path
+
+                # Define output file path using timestamp_id
+                output_filename = f"segment_{timestamp_id}.wav"
+                output_file_path = os.path.join(audio_folder_path, "embeddings_segments", output_filename)
+
+                # Ensure the output directory exists
+                embeddings_segments_dir = os.path.join(audio_folder_path, "embeddings_segments")
+                create_directory_if_not_exists(embeddings_segments_dir)
+
+                # Convert start_time and end_time from seconds to milliseconds
+                start_ms = int(start_time * 1000)
+                end_ms = int(end_time * 1000)
+
+                # Export the segment
+                segmenter.export_segment(
+                    input_file=audio_file_path,
+                    start_ms=start_ms,
+                    end_ms=end_ms,
+                    output_file=output_file_path,
+                    format="wav"
+                )
+
+                print(f"Segmented audio saved as {output_file_path}")
+
+        except Exception as e:
+            session.rollback()
+            print(f"An error occurred during audio segmentation: {e}")
+        finally:
+            session.close()

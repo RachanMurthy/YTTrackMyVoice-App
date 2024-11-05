@@ -5,7 +5,7 @@ from yttrackmyvoice.database import SessionLocal
 from yttrackmyvoice.database.models import Embedding, EmbeddingLabel, LabelName
 
 class EmbeddingLabeler:
-    def __init__(self, distance_threshold=5):
+    def __init__(self, distance_threshold=1):
         """
         Initialize the EmbeddingLabeler with a specified distance threshold for clustering.
 
