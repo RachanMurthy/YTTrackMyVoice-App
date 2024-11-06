@@ -7,13 +7,14 @@ from .utils import (
     get_url_title
 )
 from .database import SessionLocal
-from .database.models import Project, URL, AudioFile, Segment, Embedding, EmbeddingTimestamp, LabelName, EmbeddingLabel
+from .database.models import Project, URL, AudioFile, Segment, Embedding, EmbeddingTimestamp, LabelName, EmbeddingLabel, Transcript
 from pytubefix import YouTube
 import numpy as np
 from .download_audio import Downloader
 from .segment_audio import Segmenter
 from .embed_audio import Embedder  
 from .label_embeddings import EmbeddingLabeler
+import whisper
 
 class Yyt:
     def __init__(self, project_name):
@@ -557,5 +558,71 @@ class Yyt:
         except Exception as e:
             session.rollback()
             print(f"An error occurred during audio segmentation: {e}")
+        finally:
+            session.close()
+
+    def transcribe_final_segments(self):
+        """
+        Transcribes audio segments in the 'FinalSegments' directory using Whisper
+        and stores the transcriptions in the database linked to their timestamp IDs.
+        """
+        session = SessionLocal()
+        try:
+            # Initialize the Whisper model (you can choose different model sizes)
+            print("Loading Whisper model...")
+            model = whisper.load_model("base")  # Options: tiny, base, small, medium, large
+            print("Whisper model loaded.")
+
+            # Define the path to the FinalSegments directory
+            project_path = self.project.project_path
+            final_segments_dir = os.path.join(project_path, "FinalSegments")
+
+            if not os.path.isdir(final_segments_dir):
+                print(f"FinalSegments directory not found at path: {final_segments_dir}")
+                return
+
+            # Iterate over all audio files in FinalSegments
+            for filename in os.listdir(final_segments_dir):
+                if filename.endswith(".wav"):
+                    file_path = os.path.join(final_segments_dir, filename)
+
+                    # Extract timestamp_id from filename (assuming format: segment_{timestamp_id}.wav)
+                    try:
+                        timestamp_id_str = filename.split("_")[1].split(".")[0]
+                        timestamp_id = int(timestamp_id_str)
+                    except (IndexError, ValueError):
+                        print(f"Filename '{filename}' does not match the expected format. Skipping.")
+                        continue
+
+                    # Check if transcription already exists for this timestamp_id
+                    existing_transcript = session.query(Transcript).filter_by(timestamp_id=timestamp_id).first()
+                    if existing_transcript:
+                        print(f"Transcript already exists for timestamp_id {timestamp_id}. Skipping.")
+                        continue
+
+                    # Transcribe the audio file using Whisper
+                    print(f"Transcribing '{filename}'...")
+                    try:
+                        result = model.transcribe(file_path)
+                        transcription = result["text"].strip()
+                        print(f"Transcription for timestamp_id {timestamp_id}: {transcription}")
+                    except Exception as e:
+                        print(f"An error occurred while transcribing '{filename}': {e}")
+                        continue
+
+                    # Create a new Transcript record
+                    new_transcript = Transcript(
+                        timestamp_id=timestamp_id,
+                        text=transcription
+                    )
+                    session.add(new_transcript)
+                    session.commit()
+                    print(f"Transcription stored for timestamp_id {timestamp_id}.")
+
+            print("All eligible audio segments have been transcribed and stored.")
+
+        except Exception as e:
+            session.rollback()
+            print(f"An error occurred during transcription: {e}")
         finally:
             session.close()

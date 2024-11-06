@@ -36,3 +36,6 @@ if __name__ == "__main__":
 
     # Segment audio files using embeddings timestamps
     manager.segment_audio_using_embeddings_timestamps()
+
+    # Perform transcription on final segments
+    manager.transcribe_final_segments()
