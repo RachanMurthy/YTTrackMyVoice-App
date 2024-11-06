@@ -495,7 +495,8 @@ class Yyt:
     def segment_audio_using_embeddings_timestamps(self):
         """
         Segments audio files based on the EmbeddingTimestamps table.
-        Each segment is saved with a filename corresponding to its timestamp ID.
+        Each segment is saved with a filename corresponding to its timestamp ID
+        in a separate 'segments' directory at the same level as the audio folders.
         """
         session = SessionLocal()
         try:
@@ -509,13 +510,19 @@ class Yyt:
 
             segmenter = Segmenter()  # Utilize the existing Segmenter class
 
+            # Define a top-level 'segments' directory within the project path
+            project_path = self.project.project_path
+            segments_dir = os.path.join(project_path, "segments")
+            create_directory_if_not_exists(segments_dir)
+            print(f"Segments directory ready: {segments_dir}")
+
             for et in embedding_timestamps:
                 embedding_id = et.embedding_id
                 timestamp_id = et.timestamp_id
                 start_time = et.start_time
                 end_time = et.end_time
 
-                # Retrieve the associated segment to get the audio file path
+                # Retrieve the associated embedding and segment to get the audio file path
                 embedding = session.query(Embedding).filter_by(embedding_id=embedding_id).first()
                 if not embedding:
                     print(f"Embedding with ID {embedding_id} not found.")
@@ -527,15 +534,10 @@ class Yyt:
                     continue
 
                 audio_file_path = segment.file_path
-                audio_folder_path = segment.audio_file.audio_folder_path
 
-                # Define output file path using timestamp_id
+                # Define output file path using timestamp_id within the top-level 'segments' directory
                 output_filename = f"segment_{timestamp_id}.wav"
-                output_file_path = os.path.join(audio_folder_path, "embeddings_segments", output_filename)
-
-                # Ensure the output directory exists
-                embeddings_segments_dir = os.path.join(audio_folder_path, "embeddings_segments")
-                create_directory_if_not_exists(embeddings_segments_dir)
+                output_file_path = os.path.join(segments_dir, output_filename)
 
                 # Convert start_time and end_time from seconds to milliseconds
                 start_ms = int(start_time * 1000)

@@ -2,7 +2,8 @@ from yttrackmyvoice import Yyt
 
 if __name__ == "__main__":
     # Initialize the Yyt class with your project name
-    manager = Yyt("My Project")  # This will create or retrieve the project
+    # This will create or retrieve the project
+    manager = Yyt("My Project")  
 
     # # Add URLs to the project
     # manager.add_urls(["https://www.youtube.com/watch?v=cO8-_Eedjfk&pp=ygUJam9lIHJvZ2Fu"])
@@ -31,7 +32,7 @@ if __name__ == "__main__":
     # manager.get_label_info(target_label)
 
     # List all existing labels
-    manager.list_labels()
+    # manager.list_labels()
 
     # Segment audio files using embeddings timestamps
-    manager.segment_audio_using_embeddings_timestamps()
+    # manager.segment_audio_using_embeddings_timestamps()
