@@ -27,3 +27,8 @@ example.db
 
 # Export Embeddings
 export_embeddings.py
+
+#ffmpeg
+ffmpeg.exe
+ffplay.exe
+ffprobe.exe

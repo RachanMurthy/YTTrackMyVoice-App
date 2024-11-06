@@ -512,7 +512,7 @@ class Yyt:
 
             # Define a top-level 'segments' directory within the project path
             project_path = self.project.project_path
-            segments_dir = os.path.join(project_path, "segments")
+            segments_dir = os.path.join(project_path, "FinalSegments")
             create_directory_if_not_exists(segments_dir)
             print(f"Segments directory ready: {segments_dir}")
 
