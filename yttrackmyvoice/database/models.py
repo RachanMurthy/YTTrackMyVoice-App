@@ -131,6 +131,7 @@ class EmbeddingTimestamp(Base):
 
     # Relationships
     embedding = relationship("Embedding", back_populates="timestamps")
+    transcript = relationship("Transcript", back_populates="embedding_timestamp", uselist=False)
 
     def __repr__(self):
         return (f"<EmbeddingTimestamp(id={self.timestamp_id}, embedding_id={self.embedding_id}, "
@@ -161,3 +162,17 @@ class LabelName(Base):
 
     def __repr__(self):
         return f"<LabelName(id={self.label_id}, name='{self.label_name}')>"
+
+class Transcript(Base):
+    __tablename__ = 'transcripts'
+
+    transcript_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    timestamp_id = Column(Integer, ForeignKey('embedding_timestamps.timestamp_id', ondelete='CASCADE'), nullable=False)
+    text = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    # Relationships
+    embedding_timestamp = relationship("EmbeddingTimestamp", back_populates="transcript")
+
+    def __repr__(self):
+        return f"<Transcript(id={self.transcript_id}, timestamp_id={self.timestamp_id}, created_at={self.created_at})>"
