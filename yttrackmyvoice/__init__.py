@@ -1,2 +1,2 @@
 from .yyt import Yyt
-from .label_embeddings import EmbeddingLabeler
+from .embedding_labeler import EmbeddingLabeler

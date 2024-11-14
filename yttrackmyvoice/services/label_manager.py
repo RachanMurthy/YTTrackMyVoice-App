@@ -1,4 +1,4 @@
-from yttrackmyvoice.label_embeddings import EmbeddingLabeler
+from yttrackmyvoice.embedding_labeler import EmbeddingLabeler
 from yttrackmyvoice.database import SessionLocal
 from yttrackmyvoice.database.models import LabelName, EmbeddingLabel
 

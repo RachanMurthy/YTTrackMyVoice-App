@@ -1,6 +1,6 @@
 import os
 from yttrackmyvoice.utils import create_directory_if_not_exists
-from yttrackmyvoice.segment_audio import Segmenter
+from yttrackmyvoice.audio_segmenter import Segmenter
 from yttrackmyvoice.database import SessionLocal
 from yttrackmyvoice.database.models import AudioFile, Segment, Embedding, EmbeddingTimestamp
 

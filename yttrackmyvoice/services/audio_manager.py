@@ -1,4 +1,4 @@
-from yttrackmyvoice.download_audio import Downloader
+from yttrackmyvoice.audio_downloader import Downloader
 from yttrackmyvoice.database import SessionLocal
 from yttrackmyvoice.database.models import URL, AudioFile
 
@@ -27,7 +27,7 @@ class AudioManager:
 
     def segment_all_audio(self, segment_length_ms=2 * 60 * 1000):
         from math import ceil
-        from yttrackmyvoice.segment_audio import Segmenter
+        from yttrackmyvoice.audio_segmenter import Segmenter
 
         segmenter = Segmenter()
         try:

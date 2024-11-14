@@ -1,4 +1,4 @@
-from yttrackmyvoice.embed_audio import Embedder
+from yttrackmyvoice.audio_embedder import Embedder
 from yttrackmyvoice.database import SessionLocal
 from yttrackmyvoice.database.models import AudioFile, Segment, Embedding
 
