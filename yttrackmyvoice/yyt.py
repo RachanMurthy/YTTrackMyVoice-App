@@ -1,20 +1,23 @@
 import os
+import numpy as np
+import whisper
+from pytubefix import YouTube
 from sqlalchemy.exc import SQLAlchemyError
+from .database import SessionLocal
+from .database.models import (
+    Project, URL, AudioFile, Segment, Embedding, EmbeddingTimestamp, LabelName, EmbeddingLabel, Transcript
+)
+from .download_audio import Downloader
+from .embed_audio import Embedder
+from .label_embeddings import EmbeddingLabeler
+from .segment_audio import Segmenter
 from .utils import (
     create_directory_if_not_exists,
-    get_key,
     extract_video_urls_from_playlist,
+    get_key,
     get_url_title
 )
-from .database import SessionLocal
-from .database.models import Project, URL, AudioFile, Segment, Embedding, EmbeddingTimestamp, LabelName, EmbeddingLabel, Transcript
-from pytubefix import YouTube
-import numpy as np
-from .download_audio import Downloader
-from .segment_audio import Segmenter
-from .embed_audio import Embedder  
-from .label_embeddings import EmbeddingLabeler
-import whisper
+import simpleaudio as sa
 
 class Yyt:
     def __init__(self, project_name):
@@ -624,5 +627,86 @@ class Yyt:
         except Exception as e:
             session.rollback()
             print(f"An error occurred during transcription: {e}")
+        finally:
+            session.close()
+
+    def play_segments_by_label(self, label_name):
+        """
+        Play all audio segments associated with the specified speaker label.
+
+        Parameters:
+        - label_name (str): The name of the speaker label.
+
+        Returns:
+        - None
+        """
+        session = SessionLocal()
+        try:
+            # Retrieve the label
+            label = session.query(LabelName).filter_by(label_name=label_name).first()
+            if not label:
+                print(f"Label '{label_name}' does not exist.")
+                return
+
+            # Retrieve all EmbeddingLabels associated with the label
+            embedding_labels = session.query(EmbeddingLabel).filter_by(label_id=label.label_id).all()
+            if not embedding_labels:
+                print(f"No embeddings found for label '{label_name}'.")
+                return
+
+            # Retrieve all embedding_ids
+            embedding_ids = [el.embedding_id for el in embedding_labels]
+
+            # Retrieve all EmbeddingTimestamps for these embeddings
+            embedding_timestamps = session.query(EmbeddingTimestamp).filter(
+                EmbeddingTimestamp.embedding_id.in_(embedding_ids)
+            ).all()
+
+            if not embedding_timestamps:
+                print(f"No embedding timestamps found for label '{label_name}'.")
+                return
+
+            # Retrieve unique segment_ids
+            segment_ids = list(
+                set(
+                    et.embedding.segment_id
+                    for et in embedding_timestamps
+                    if et.embedding and et.embedding.segment
+                )
+            )
+
+            if not segment_ids:
+                print(f"No segments found for label '{label_name}'.")
+                return
+
+            # Retrieve all Segments
+            segments = session.query(Segment).filter(Segment.segment_id.in_(segment_ids)).all()
+
+            if not segments:
+                print(f"No segments found for label '{label_name}'.")
+                return
+
+            # Retrieve file paths
+            file_paths = [segment.file_path for segment in segments]
+
+            if not file_paths:
+                print(f"No audio files found for label '{label_name}'.")
+                return
+
+            # Play each file
+            for file_path in file_paths:
+                if os.path.exists(file_path):
+                    print(f"Playing segment: {file_path}")
+                    try:
+                        wave_obj = sa.WaveObject.from_wave_file(file_path)
+                        play_obj = wave_obj.play()
+                        play_obj.wait_done()  # Wait until playback is finished
+                    except Exception as e:
+                        print(f"Failed to play {file_path}: {e}")
+                else:
+                    print(f"File not found: {file_path}")
+
+        except Exception as e:
+            print(f"An error occurred while playing segments: {e}")
         finally:
             session.close()

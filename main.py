@@ -2,40 +2,26 @@ from yttrackmyvoice import Yyt
 
 if __name__ == "__main__":
     # Initialize the Yyt class with your project name
-    # This will create or retrieve the project
-    manager = Yyt("AnythingElsePodcast")  
-
-    # # Add URLs to the project
-    # manager.add_urls(["https://www.youtube.com/watch?v=cO8-_Eedjfk&pp=ygUJam9lIHJvZ2Fu"])
-
-    # # Download all audio files for the project
+    manager = Yyt("school")  
+    # manager.add_urls(["https://www.youtube.com/watch?v=Ir0eO9H8P7k&pp=ygUOc2lkZW1lbiByZWFjdHM%3D"])
     # manager.download_all_audio()
+    manager.segment_all_audio(segment_length_ms=30 * 60 * 1000)
+    manager.embed_all_audio()
 
-    # # Segment all audio files
+    # Existing features (uncomment as needed)
+    # manager.add_urls(["https://www.youtube.com/watch?v=cO8-_Eedjfk&pp=ygUJam9lIHJvZ2Fu"])
+    # manager.download_all_audio()
     # manager.segment_all_audio(segment_length_ms=30 * 60 * 1000)  # Segments of 30 minutes
-
-    # # Generate embeddings for all audio segments
     # manager.embed_all_audio()
-
-    # Retrieve all embeddings
     # embeddings, labels = Yyt.retrieve_all_embeddings()
-
     # print(embeddings, labels)
-
-    # Perform clustering and labeling using the Yyt instance
     # manager.cluster_and_label_embeddings()
-
-    #  Specify the label name you want to retrieve information for
     # target_label = "Speaker 19"  # Replace with your desired label name
-
-    # Retrieve and display detailed information for the specified label
     # manager.get_label_info(target_label)
-
-    # List all existing labels
     # manager.list_labels()
+    # manager.segment_audio_using_embeddings_timestamps()
+    # manager.transcribe_final_segments()
 
-    # Segment audio files using embeddings timestamps
-    manager.segment_audio_using_embeddings_timestamps()
-
-    # Perform transcription on final segments
-    manager.transcribe_final_segments()
+    # New Feature: Listen to all segments of a specific speaker
+    # speaker_label = input("Enter the speaker label you want to listen to (e.g., 'Speaker 1'): ")
+    # manager.play_segments_by_label(speaker_label)
