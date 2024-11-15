@@ -3,8 +3,8 @@ from yttrackmyvoice import Yyt
 if __name__ == "__main__":
     # Initialize the Yyt class with your project name
     manager = Yyt("school")  
-    # manager.add_urls(["https://www.youtube.com/watch?v=Ir0eO9H8P7k&pp=ygUOc2lkZW1lbiByZWFjdHM%3D"])
-    # manager.download_all_audio()
+    manager.add_urls(["https://www.youtube.com/watch?v=Ir0eO9H8P7k&pp=ygUOc2lkZW1lbiByZWFjdHM%3D"])
+    manager.download_all_audio()
     manager.segment_all_audio(segment_length_ms=30 * 60 * 1000)
     manager.embed_all_audio()
 
