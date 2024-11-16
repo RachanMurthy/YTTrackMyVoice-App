@@ -1,8 +1,8 @@
-from yttrackmyvoice import Yyt2
+from yttrackmyvoice import Yyt
 
 if __name__ == "__main__":
     # Initialize the Yyt2 class with your project name
-    manager = Yyt2("school")
+    manager = Yyt("school")
     manager.add_urls(["https://www.youtube.com/watch?v=Ir0eO9H8P7k&pp=ygUOc2lkZW1lbiByZWFjdHM%3D"])
     manager.download_all_audio()
     manager.segment_all_audio(segment_length_ms=3 * 60 * 1000)

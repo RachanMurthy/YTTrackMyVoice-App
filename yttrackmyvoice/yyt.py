@@ -5,7 +5,7 @@ from yttrackmyvoice.services.label.label_manager import LabelManager
 from yttrackmyvoice.services.transcription.transcription_manager import TranscriptionManager
 from yttrackmyvoice.services.playback.playback_manager import PlaybackManager
 from yttrackmyvoice.services.project.project_manager import ProjectManager
-class Yyt2:
+class Yyt:
     def __init__(self, project_name):
         """
         Initializes the Yyt2 class by setting up all necessary managers.
