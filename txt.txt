@@ -1,0 +1,31 @@
+yttrackmyvoice/
+│
+├── __init__.py
+├── yyt.py
+├── database/
+│   ├── __init__.py
+│   └── models.py
+├── services/
+│   ├── __init__.py
+│   ├── audio/
+│   │   ├── __init__.py
+│   │   ├── audio_manager.py
+│   │   ├── download_audio.py
+│   │   └── segment_audio.py
+│   ├── embedding/
+│   │   ├── __init__.py
+│   │   ├── embedding_manager.py
+│   │   └── label_embeddings.py
+│   ├── label/
+│   │   ├── __init__.py
+│   │   └── label_manager.py
+│   ├── transcription/
+│   │   ├── __init__.py
+│   │   └── transcription_manager.py
+│   ├── url/
+│   │   ├── __init__.py
+│   │   └── url_manager.py
+│   └── playback/
+│       ├── __init__.py
+│       └── playback_manager.py
+└── utils.py

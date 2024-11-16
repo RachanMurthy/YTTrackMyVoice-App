@@ -159,6 +159,7 @@ class LabelName(Base):
 
     # Relationships
     embeddings = relationship("EmbeddingLabel", back_populates="label")
+    final_segments = relationship("FinalSegment", back_populates="label", cascade="all, delete, delete-orphan")
 
     def __repr__(self):
         return f"<LabelName(id={self.label_id}, name='{self.label_name}')>"
@@ -176,3 +177,19 @@ class Transcript(Base):
 
     def __repr__(self):
         return f"<Transcript(id={self.transcript_id}, timestamp_id={self.timestamp_id}, created_at={self.created_at})>"
+
+# Updated Model for the FinalSegment table
+class FinalSegment(Base):
+    __tablename__ = 'final_segments'
+
+    final_segment_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    label_id = Column(Integer, ForeignKey('label_names.label_id', ondelete='CASCADE'), nullable=False)  # Foreign key linking to LabelName
+    file_path = Column(String(500), nullable=False)  # Path to the final segment audio file
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))  # Automatically set to the current UTC time
+
+    # Relationships
+    label = relationship("LabelName", back_populates="final_segments")
+
+    def __repr__(self):
+        return (f"<FinalSegment(id={self.final_segment_id}, label_id={self.label_id}, "
+                f"file_path='{self.file_path}', created_at={self.created_at})>")
