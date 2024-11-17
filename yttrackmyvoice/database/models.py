@@ -160,6 +160,7 @@ class LabelName(Base):
     # Relationships
     embeddings = relationship("EmbeddingLabel", back_populates="label")
     final_segments = relationship("FinalSegment", back_populates="label", cascade="all, delete, delete-orphan")
+    transcripts = relationship("Transcript", back_populates="label")
 
     def __repr__(self):
         return f"<LabelName(id={self.label_id}, name='{self.label_name}')>"
@@ -169,14 +170,17 @@ class Transcript(Base):
 
     transcript_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     timestamp_id = Column(Integer, ForeignKey('embedding_timestamps.timestamp_id', ondelete='CASCADE'), nullable=False)
+    label_id = Column(Integer, ForeignKey('label_names.label_id', ondelete='CASCADE'), nullable=False)
     text = Column(Text, nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     # Relationships
     embedding_timestamp = relationship("EmbeddingTimestamp", back_populates="transcript")
+    label = relationship("LabelName", back_populates="transcripts")
 
     def __repr__(self):
-        return f"<Transcript(id={self.transcript_id}, timestamp_id={self.timestamp_id}, created_at={self.created_at})>"
+        return (f"<Transcript(id={self.transcript_id}, timestamp_id={self.timestamp_id}, "
+                f"label_id={self.label_id}, created_at={self.created_at}, text='{self.text}')>")
 
 # Updated Model for the FinalSegment table
 class FinalSegment(Base):

@@ -52,23 +52,24 @@ class TranscriptService:
                         print(f"An error occurred while transcribing '{filename}': {e}")
                         continue
 
-                    # Create a new Transcript record
+                    # Determine the label_id for this transcription
+                    label_id = self.get_label_id_for_transcription(timestamp_id)
+                    if label_id is None:
+                        print(f"No valid label found for timestamp_id {timestamp_id}. Skipping FinalSegment creation.")
+                        continue
+
+                    # Create a new Transcript record with label_id
                     new_transcript = Transcript(
                         timestamp_id=timestamp_id,
+                        label_id=label_id,
                         text=transcription
                     )
                     session.add(new_transcript)
                     session.commit()
-                    print(f"Transcription stored for timestamp_id {timestamp_id}.")
+                    print(f"Transcription stored for timestamp_id {timestamp_id} with label_id {label_id}.")
 
                     # **Add FinalSegment to Database**
                     try:
-                        # Determine the label_id for this transcription
-                        label_id = self.get_label_id_for_transcription(timestamp_id)
-                        if label_id is None:
-                            print(f"No valid label found for timestamp_id {timestamp_id}. Skipping FinalSegment creation.")
-                            continue
-
                         # Define the new FinalSegment file path
                         # For example, you might copy or move the original segment to create a FinalSegment
                         # Here, we'll assume that the FinalSegment file is the same as the original for simplicity
